@@ -1,0 +1,28 @@
+{
+  "format": "jinr-mc-scene",
+  "format_version": "0.1",
+  "source": {"tool": "hand-written", "document": "tests/scenes/box_in_world.json"},
+  "units": {"length": "mm", "angle": "deg", "density": "g/cm3"},
+  "world": {"material": "air", "margin_percent": 10},
+  "materials": [
+    {"id": "air", "name": "Воздух", "nist": "G4_AIR"},
+    {"id": "iron", "name": "Железо", "nist": "G4_Fe"}
+  ],
+  "bodies": [
+    {
+      "id": "box",
+      "name": "Коробка 100×50×20",
+      "parent": null,
+      "material": "iron",
+      "transform": {
+        "translation": [10, 20, 30],
+        "rotation": {"convention": "identity"}
+      },
+      "shape": {"type": "box", "size": [100, 50, 20]},
+      "verification": {
+        "cad_volume": 100000,
+        "bbox": [[-40, -5, 20], [60, 45, 40]]
+      }
+    }
+  ]
+}

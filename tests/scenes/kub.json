@@ -1,0 +1,112 @@
+{
+  "format": "jinr-mc-scene",
+  "format_version": "0.1",
+  "min_reader_version": "0.1",
+  "source": {
+    "tool": "freecad-mc-exporter-cpp",
+    "tool_version": "0.1.1",
+    "document": "Unnamed.FCStd"
+  },
+  "units": {
+    "length": "mm",
+    "angle": "deg",
+    "density": "g/cm3"
+  },
+  "extensions_used": [
+    "JINR_target_hints"
+  ],
+  "extensions_required": [],
+  "world": {
+    "material": "air",
+    "margin_percent": 10
+  },
+  "materials": [
+    {
+      "id": "air",
+      "name": "Воздух",
+      "nist": "G4_AIR",
+      "extensions": {
+        "JINR_target_hints": {
+          "fluka": {
+            "name": "AIR",
+            "predefined": true
+          }
+        }
+      }
+    },
+    {
+      "id": "iron",
+      "name": "Железо (NIST)",
+      "nist": "G4_Fe"
+    }
+  ],
+  "bodies": [
+    {
+      "id": "Body",
+      "name": "Тело",
+      "parent": null,
+      "material": "iron",
+      "transform": {
+        "translation": [
+          0,
+          0,
+          25
+        ],
+        "rotation": {
+          "convention": "matrix_active",
+          "matrix": [
+            [
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              1,
+              0
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ]
+        }
+      },
+      "shape": {
+        "type": "box",
+        "size": [
+          50,
+          50,
+          50
+        ]
+      },
+      "verification": {
+        "cad_volume": 124999.99999999999,
+        "bbox": [
+          [
+            -25,
+            -25,
+            0
+          ],
+          [
+            25,
+            25,
+            50
+          ]
+        ]
+      },
+      "extras": {
+        "freecad": {
+          "name": "Body",
+          "label": "Тело",
+          "type_id": "PartDesign::Body"
+        },
+        "recognition": {
+          "kind": "cube",
+          "method": "brep_topology"
+        }
+      }
+    }
+  ]
+}

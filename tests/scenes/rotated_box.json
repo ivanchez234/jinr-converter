@@ -1,0 +1,28 @@
+{
+  "format": "jinr-mc-scene",
+  "format_version": "0.1",
+  "source": {"tool": "hand-written", "document": "tests/scenes/rotated_box.json"},
+  "units": {"length": "mm", "angle": "deg", "density": "g/cm3"},
+  "world": {"material": "air", "margin_percent": 10},
+  "materials": [
+    {"id": "air", "name": "Воздух", "nist": "G4_AIR"},
+    {"id": "iron", "name": "Железо", "nist": "G4_Fe"}
+  ],
+  "bodies": [
+    {
+      "id": "box",
+      "name": "Коробка 20×40×70, поворот 90° вокруг z",
+      "parent": null,
+      "material": "iron",
+      "transform": {
+        "translation": [300, -150, 80],
+        "rotation": {"convention": "euler_xyz_extrinsic_deg", "angles": [0, 0, 90]}
+      },
+      "shape": {"type": "box", "size": [20, 40, 70]},
+      "verification": {
+        "cad_volume": 56000,
+        "bbox": [[280, -160, 45], [320, -140, 115]]
+      }
+    }
+  ]
+}

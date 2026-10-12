@@ -63,4 +63,22 @@ cd ~/g4work/B1/build && ./exampleB1
 
 ## Python для mcscene
 
-У `mcscene` своё виртуальное окружение в папке репозитория (`.venv/`), Python FreeCAD для него не нужен. Команды установки появятся на шаге 0.3 плана.
+У `mcscene` своё виртуальное окружение в папке репозитория (`.venv/`), Python FreeCAD для него не нужен, Geant4 для этой части тоже.
+
+```bash
+cd ~/jinr-converter
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+mcscene --version
+```
+
+Пакет ставится только в редактируемом режиме (`-e`): тогда `mcscene` берёт контракт и `validate.py` прямо из `contracts/scene/v0.1/`, а правки в `python/mcscene/` действуют сразу, без переустановки. В новом терминале достаточно `source .venv/bin/activate`.
+
+### Проверка
+
+```bash
+pytest                                                     # все тесты зелёные
+mcscene validate --strict tests/scenes/*.json              # OK
+mcscene validate contracts/scene/v0.1/bad/b01_half_sizes.json   # E220, код выхода 1
+```

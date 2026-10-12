@@ -1,0 +1,44 @@
+{
+  "format": "jinr-mc-scene",
+  "format_version": "0.1",
+  "source": {"tool": "hand-written", "document": "tests/scenes/nested_boxes.json"},
+  "units": {"length": "mm", "angle": "deg", "density": "g/cm3"},
+  "world": {"material": "air", "margin_percent": 10},
+  "materials": [
+    {"id": "air", "name": "Воздух", "nist": "G4_AIR"},
+    {"id": "concrete", "name": "Бетон", "nist": "G4_CONCRETE"},
+    {"id": "iron", "name": "Железо", "nist": "G4_Fe"}
+  ],
+  "bodies": [
+    {
+      "id": "outer",
+      "name": "Бетонный блок 400×300×200",
+      "parent": null,
+      "material": "concrete",
+      "transform": {
+        "translation": [0, 0, 100],
+        "rotation": {"convention": "identity"}
+      },
+      "shape": {"type": "box", "size": [400, 300, 200]},
+      "verification": {
+        "cad_volume": 24000000,
+        "bbox": [[-200, -150, 0], [200, 150, 200]]
+      }
+    },
+    {
+      "id": "inner",
+      "name": "Железная вставка 100×50×20",
+      "parent": "outer",
+      "material": "iron",
+      "transform": {
+        "translation": [50, -30, 10],
+        "rotation": {"convention": "identity"}
+      },
+      "shape": {"type": "box", "size": [100, 50, 20]},
+      "verification": {
+        "cad_volume": 100000,
+        "bbox": [[0, -55, 0], [100, -5, 20]]
+      }
+    }
+  ]
+}
