@@ -1,0 +1,187 @@
+{
+  "format": "jinr-mc-scene",
+  "format_version": "0.1",
+  "min_reader_version": "0.1",
+  "source": {
+    "tool": "freecad-mc-exporter",
+    "tool_version": "0.1.0",
+    "document": "pipe.FCStd"
+  },
+  "units": {
+    "length": "mm",
+    "angle": "deg",
+    "density": "g/cm3"
+  },
+  "extensions_used": [
+    "JINR_target_hints"
+  ],
+  "extensions_required": [],
+  "world": {
+    "material": "air",
+    "margin_percent": 10
+  },
+  "materials": [
+    {
+      "id": "air",
+      "name": "Воздух",
+      "nist": "G4_AIR",
+      "extensions": {
+        "JINR_target_hints": {
+          "fluka": {
+            "name": "AIR",
+            "predefined": true
+          }
+        }
+      }
+    },
+    {
+      "id": "vacuum",
+      "name": "Вакуум ионопровода",
+      "nist": "G4_Galactic",
+      "extensions": {
+        "JINR_target_hints": {
+          "fluka": {
+            "name": "VACUUM",
+            "predefined": true
+          },
+          "mcnp": {
+            "void": true
+          }
+        }
+      }
+    },
+    {
+      "id": "steel_304",
+      "name": "Сталь AISI 304 (иллюстративный состав)",
+      "density": 7.93,
+      "state": "solid",
+      "composition": {
+        "basis": "mass",
+        "components": [
+          {
+            "element": "Fe",
+            "fraction": 0.695
+          },
+          {
+            "element": "Cr",
+            "fraction": 0.19
+          },
+          {
+            "element": "Ni",
+            "fraction": 0.095
+          },
+          {
+            "element": "Mn",
+            "fraction": 0.02
+          }
+        ]
+      },
+      "provenance": "справочный состав для примера; для расчёта уточнить"
+    }
+  ],
+  "bodies": [
+    {
+      "id": "pipe",
+      "name": "Ионопровод",
+      "parent": null,
+      "material": "steel_304",
+      "transform": {
+        "translation": [
+          0,
+          0,
+          0
+        ],
+        "rotation": {
+          "convention": "matrix_active",
+          "matrix": [
+            [
+              0,
+              0,
+              1
+            ],
+            [
+              0,
+              1,
+              0
+            ],
+            [
+              -1,
+              0,
+              0
+            ]
+          ]
+        }
+      },
+      "shape": {
+        "type": "cylinder",
+        "radius": 60,
+        "height": 4000
+      },
+      "verification": {
+        "cad_volume": 45238934.2,
+        "bbox": [
+          [
+            -2000,
+            -60,
+            -60
+          ],
+          [
+            2000,
+            60,
+            60
+          ]
+        ]
+      },
+      "extras": {
+        "freecad": {
+          "name": "Cylinder001",
+          "label": "Ионопровод",
+          "type_id": "Part::Cylinder"
+        }
+      }
+    },
+    {
+      "id": "pipe_bore",
+      "name": "Вакуум внутри ионопровода",
+      "parent": "pipe",
+      "material": "vacuum",
+      "transform": {
+        "translation": [
+          0,
+          0,
+          0
+        ],
+        "rotation": {
+          "convention": "identity"
+        }
+      },
+      "shape": {
+        "type": "cylinder",
+        "radius": 55,
+        "height": 3990
+      },
+      "verification": {
+        "cad_volume": 37918237.9,
+        "bbox": [
+          [
+            -55,
+            -55,
+            -1995
+          ],
+          [
+            55,
+            55,
+            1995
+          ]
+        ]
+      },
+      "extras": {
+        "freecad": {
+          "name": "Cylinder002",
+          "label": "Вакуум",
+          "type_id": "Part::Cylinder"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,274 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jinr.example/schemas/jinr-mc-scene/0.1/scene.schema.json",
+  "title": "jinr-mc-scene v0.1",
+  "description": "Контракт между входным модулем (FreeCAD -> JSON) и выходным модулем (JSON -> Geant4 / FLUKA / MCNP). Все длины в мм, размеры полные, примитивы центрированы в своей локальной системе.",
+  "type": "object",
+  "required": ["format", "format_version", "units", "world", "materials", "bodies"],
+  "additionalProperties": false,
+  "properties": {
+    "format": { "const": "jinr-mc-scene", "description": "Всегда строка jinr-mc-scene." },
+    "format_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+$", "description": "Версия схемы MAJOR.MINOR, для этого файла 0.1." },
+    "min_reader_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+$", "description": "Минимальная версия читателя, который обязан понять файл." },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tool": { "type": "string" },
+        "tool_version": { "type": "string" },
+        "document": { "type": "string", "description": "Имя файла .FCStd" },
+        "exported_at": { "type": "string", "description": "Время экспорта ISO 8601 (необязательно; мешает побайтовому сравнению)" }
+      }
+    },
+    "units": {
+      "type": "object",
+      "required": ["length", "angle", "density"],
+      "additionalProperties": false,
+      "properties": {
+        "length": { "enum": ["mm"] },
+        "angle": { "enum": ["deg"] },
+        "density": { "enum": ["g/cm3"] }
+      }
+    },
+    "extensions_used": { "type": "array", "items": { "$ref": "#/$defs/extName" }, "uniqueItems": true },
+    "extensions_required": { "type": "array", "items": { "$ref": "#/$defs/extName" }, "uniqueItems": true },
+    "world": {
+      "type": "object",
+      "required": ["material"],
+      "additionalProperties": false,
+      "properties": {
+        "material": { "$ref": "#/$defs/id", "description": "id материала, которым заполнен мир (обычно воздух)." },
+        "margin_percent": { "type": "number", "minimum": 0, "description": "Запас мира вокруг всех тел, % от размера. По умолчанию 10." }
+      }
+    },
+    "materials": { "type": "array", "items": { "$ref": "#/$defs/material" } },
+    "bodies": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/body" } },
+    "extensions": { "$ref": "#/$defs/extensions" },
+    "extras": { "type": "object", "description": "Свободные данные, генератор их игнорирует." }
+  },
+
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_-]*$", "maxLength": 64 },
+    "extName": { "type": "string", "pattern": "^(JINR|X_[A-Z]+)_[A-Za-z0-9_]+$" },
+    "extensions": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/extName" },
+      "additionalProperties": { "type": "object" }
+    },
+    "posNumber": { "type": "number", "exclusiveMinimum": 0 },
+    "vec3": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+    "posVec3": { "type": "array", "items": { "$ref": "#/$defs/posNumber" }, "minItems": 3, "maxItems": 3 },
+
+    "material": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string", "description": "Имя для людей, можно по-русски." },
+        "nist": { "type": "string", "pattern": "^G4_[A-Za-z0-9_-]+$", "description": "Имя материала из базы NIST Geant4, например G4_CONCRETE." },
+        "density": { "$ref": "#/$defs/posNumber", "description": "Плотность в g/cm3." },
+        "state": { "enum": ["solid", "liquid", "gas"] },
+        "composition": {
+          "type": "object",
+          "required": ["basis", "components"],
+          "additionalProperties": false,
+          "properties": {
+            "basis": { "enum": ["mass", "atom"], "description": "mass: массовые доли; atom: атомные доли." },
+            "components": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "required": ["element", "fraction"],
+                "additionalProperties": false,
+                "properties": {
+                  "element": { "type": "string", "pattern": "^[A-Z][a-z]?$" },
+                  "fraction": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 }
+                }
+              }
+            }
+          }
+        },
+        "provenance": { "type": "string", "description": "Откуда взят состав." },
+        "extensions": { "$ref": "#/$defs/extensions" },
+        "extras": { "type": "object" }
+      },
+      "anyOf": [
+        { "required": ["nist"] },
+        { "required": ["density", "composition"] }
+      ]
+    },
+
+    "body": {
+      "type": "object",
+      "required": ["id", "parent", "material", "transform", "shape", "verification"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id", "description": "Стабильный id; брать из Name объекта FreeCAD, не из Label." },
+        "name": { "type": "string", "description": "Имя для людей (Label), можно по-русски." },
+        "parent": { "oneOf": [ { "type": "null" }, { "$ref": "#/$defs/id" } ], "description": "id родительского тела или null (лежит прямо в мире)." },
+        "material": { "$ref": "#/$defs/id" },
+        "transform": { "$ref": "#/$defs/transform" },
+        "shape": { "$ref": "#/$defs/shape" },
+        "verification": { "$ref": "#/$defs/verification" },
+        "extensions": { "$ref": "#/$defs/extensions" },
+        "extras": { "type": "object" }
+      }
+    },
+
+    "transform": {
+      "type": "object",
+      "required": ["translation", "rotation"],
+      "additionalProperties": false,
+      "description": "Положение центра тела в системе родителя и активный поворот из системы тела в систему родителя.",
+      "properties": {
+        "translation": { "$ref": "#/$defs/vec3" },
+        "rotation": { "$ref": "#/$defs/rotation" }
+      }
+    },
+    "rotation": {
+      "oneOf": [
+        {
+          "type": "object", "required": ["convention"], "additionalProperties": false,
+          "properties": { "convention": { "const": "identity" } }
+        },
+        {
+          "type": "object", "required": ["convention", "matrix"], "additionalProperties": false,
+          "properties": {
+            "convention": { "const": "matrix_active" },
+            "matrix": { "type": "array", "minItems": 3, "maxItems": 3, "items": { "$ref": "#/$defs/vec3" }, "description": "3x3 по строкам; столбцы = оси тела в системе родителя. Это левый верхний блок 3x3 из Placement.Rotation.toMatrix() в FreeCAD." }
+          }
+        },
+        {
+          "type": "object", "required": ["convention", "angles"], "additionalProperties": false,
+          "properties": {
+            "convention": { "const": "euler_xyz_extrinsic_deg" },
+            "angles": { "$ref": "#/$defs/vec3", "description": "Повороты вокруг неподвижных осей X, затем Y, затем Z, в градусах: R = Rz*Ry*Rx." }
+          }
+        }
+      ]
+    },
+
+    "shape": {
+      "description": "Форма тела. Одно тело = одно представление: примитив, булево дерево примитивов или меш целиком.",
+      "oneOf": [
+        { "$ref": "#/$defs/box" },
+        { "$ref": "#/$defs/cylinder" },
+        { "$ref": "#/$defs/cone" },
+        { "$ref": "#/$defs/sphere" },
+        { "$ref": "#/$defs/torus" },
+        { "$ref": "#/$defs/boolean" },
+        { "$ref": "#/$defs/mesh" }
+      ]
+    },
+    "operand": {
+      "description": "Операнд булевой операции: примитив или вложенная булева операция. Меш операндом быть не может.",
+      "oneOf": [
+        { "$ref": "#/$defs/box" },
+        { "$ref": "#/$defs/cylinder" },
+        { "$ref": "#/$defs/cone" },
+        { "$ref": "#/$defs/sphere" },
+        { "$ref": "#/$defs/torus" },
+        { "$ref": "#/$defs/boolean" }
+      ]
+    },
+
+    "box": {
+      "type": "object", "required": ["type", "size"], "additionalProperties": false,
+      "description": "Параллелепипед, центр в начале локальной системы.",
+      "properties": {
+        "type": { "const": "box" },
+        "size": { "$ref": "#/$defs/posVec3", "description": "Полные размеры по x, y, z (не половинки)." },
+        "transform": { "$ref": "#/$defs/transform", "description": "Только у операнда булевой операции: положение в системе тела." }
+      }
+    },
+    "cylinder": {
+      "type": "object", "required": ["type", "radius", "height"], "additionalProperties": false,
+      "description": "Цилиндр (или труба) вдоль локальной оси z, центр в середине оси.",
+      "properties": {
+        "type": { "const": "cylinder" },
+        "radius": { "$ref": "#/$defs/posNumber" },
+        "height": { "$ref": "#/$defs/posNumber", "description": "Полная длина." },
+        "inner_radius": { "type": "number", "minimum": 0, "description": "Внутренний радиус трубы; 0 или нет поля = сплошной." },
+        "transform": { "$ref": "#/$defs/transform" }
+      }
+    },
+    "cone": {
+      "type": "object", "required": ["type", "radius_bottom", "radius_top", "height"], "additionalProperties": false,
+      "description": "Усечённый конус вдоль локальной z, центр в середине оси; bottom при z = -height/2.",
+      "properties": {
+        "type": { "const": "cone" },
+        "radius_bottom": { "type": "number", "minimum": 0 },
+        "radius_top": { "type": "number", "minimum": 0 },
+        "height": { "$ref": "#/$defs/posNumber" },
+        "inner_radius_bottom": { "type": "number", "minimum": 0 },
+        "inner_radius_top": { "type": "number", "minimum": 0 },
+        "transform": { "$ref": "#/$defs/transform" }
+      }
+    },
+    "sphere": {
+      "type": "object", "required": ["type", "radius"], "additionalProperties": false,
+      "properties": {
+        "type": { "const": "sphere" },
+        "radius": { "$ref": "#/$defs/posNumber" },
+        "inner_radius": { "type": "number", "minimum": 0 },
+        "transform": { "$ref": "#/$defs/transform" }
+      }
+    },
+    "torus": {
+      "type": "object", "required": ["type", "major_radius", "minor_radius"], "additionalProperties": false,
+      "description": "Тор, ось вращения = локальная z, центр в начале координат.",
+      "properties": {
+        "type": { "const": "torus" },
+        "major_radius": { "$ref": "#/$defs/posNumber", "description": "От оси до центра трубки." },
+        "minor_radius": { "$ref": "#/$defs/posNumber", "description": "Радиус трубки." },
+        "transform": { "$ref": "#/$defs/transform" }
+      }
+    },
+    "boolean": {
+      "type": "object", "required": ["type", "op", "left", "right"], "additionalProperties": false,
+      "description": "Бинарная булева операция. transform операндов задаётся в системе тела.",
+      "properties": {
+        "type": { "const": "boolean" },
+        "op": { "enum": ["union", "subtract", "intersect"], "description": "subtract = left минус right (Part::Cut: Base минус Tool)." },
+        "left": { "$ref": "#/$defs/operand" },
+        "right": { "$ref": "#/$defs/operand" },
+        "transform": { "$ref": "#/$defs/transform" }
+      }
+    },
+    "mesh": {
+      "type": "object", "required": ["type", "uri", "encoding", "sha256", "n_facets", "fallback_reason"], "additionalProperties": false,
+      "description": "Тело целиком как замкнутая треугольная сетка. Координаты STL в мм, в локальной системе тела (до применения transform тела).",
+      "properties": {
+        "type": { "const": "mesh" },
+        "uri": { "type": "string", "pattern": "^[^\\\\:]+\\.stl$", "description": "Путь относительно JSON, через /, например meshes/yoke.stl." },
+        "encoding": { "enum": ["stl-binary", "stl-ascii"] },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "n_facets": { "type": "integer", "minimum": 4 },
+        "tessellation": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "linear_deflection": { "$ref": "#/$defs/posNumber" },
+            "angular_deflection_deg": { "$ref": "#/$defs/posNumber" }
+          }
+        },
+        "fallback_reason": { "enum": ["SPLINE_SURFACE", "PRIMITIVE_FIT_FAILED", "BOOLEAN_TOO_COMPLEX", "USER_FORCED"] },
+        "note": { "type": "string" }
+      }
+    },
+
+    "verification": {
+      "type": "object", "required": ["cad_volume"], "additionalProperties": false,
+      "description": "Значения, посчитанные FreeCAD по B-rep (Shape.Volume, Shape.Area, Shape.BoundBox). Детей не вычитать.",
+      "properties": {
+        "cad_volume": { "$ref": "#/$defs/posNumber", "description": "Объём собственной формы тела, мм3." },
+        "cad_area": { "$ref": "#/$defs/posNumber", "description": "Площадь поверхности, мм2." },
+        "bbox": {
+          "type": "array", "minItems": 2, "maxItems": 2, "items": { "$ref": "#/$defs/vec3" },
+          "description": "[[xmin,ymin,zmin],[xmax,ymax,zmax]] в системе родителя (для parent = null — в мировой)."
+        }
+      }
+    }
+  }
+}

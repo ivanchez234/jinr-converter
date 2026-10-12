@@ -1,0 +1,136 @@
+{
+  "format": "jinr-mc-scene",
+  "format_version": "0.1",
+  "min_reader_version": "0.1",
+  "source": {
+    "tool": "freecad-mc-exporter",
+    "tool_version": "0.1.0",
+    "document": "yoke.FCStd"
+  },
+  "units": {
+    "length": "mm",
+    "angle": "deg",
+    "density": "g/cm3"
+  },
+  "extensions_used": [
+    "JINR_target_hints"
+  ],
+  "extensions_required": [],
+  "world": {
+    "material": "air",
+    "margin_percent": 10
+  },
+  "materials": [
+    {
+      "id": "air",
+      "name": "Воздух",
+      "nist": "G4_AIR",
+      "extensions": {
+        "JINR_target_hints": {
+          "fluka": {
+            "name": "AIR",
+            "predefined": true
+          }
+        }
+      }
+    },
+    {
+      "id": "steel_304",
+      "name": "Сталь AISI 304 (иллюстративный состав)",
+      "density": 7.93,
+      "state": "solid",
+      "composition": {
+        "basis": "mass",
+        "components": [
+          {
+            "element": "Fe",
+            "fraction": 0.695
+          },
+          {
+            "element": "Cr",
+            "fraction": 0.19
+          },
+          {
+            "element": "Ni",
+            "fraction": 0.095
+          },
+          {
+            "element": "Mn",
+            "fraction": 0.02
+          }
+        ]
+      },
+      "provenance": "справочный состав для примера; для расчёта уточнить"
+    }
+  ],
+  "bodies": [
+    {
+      "id": "magnet_yoke",
+      "name": "Ярмо магнита",
+      "parent": null,
+      "material": "steel_304",
+      "transform": {
+        "translation": [
+          1200,
+          0,
+          700
+        ],
+        "rotation": {
+          "convention": "euler_xyz_extrinsic_deg",
+          "angles": [
+            0,
+            0,
+            30
+          ]
+        }
+      },
+      "shape": {
+        "type": "boolean",
+        "op": "subtract",
+        "left": {
+          "type": "box",
+          "size": [
+            600,
+            400,
+            600
+          ]
+        },
+        "right": {
+          "type": "mesh",
+          "uri": "meshes/magnet_yoke.stl",
+          "encoding": "stl-binary",
+          "sha256": "823b4d072afa97a3a7d5c3e077a4588664a85d32155692eabe4a39bd3acd6675",
+          "n_facets": 256,
+          "tessellation": {
+            "linear_deflection": 0.5,
+            "angular_deflection_deg": 5.0
+          },
+          "fallback_reason": "SPLINE_SURFACE",
+          "note": "профиль полюса - суперэллипс, не примитив"
+        }
+      },
+      "verification": {
+        "cad_volume": 133493376.8,
+        "bbox": [
+          [
+            886.9,
+            -272.3,
+            399.5
+          ],
+          [
+            1513.1,
+            272.3,
+            1000.5
+          ]
+        ]
+      },
+      "extras": {
+        "freecad": {
+          "name": "Extrude001",
+          "label": "Ярмо",
+          "type_id": "Part::Extrusion"
+        }
+      }
+    }
+  ]
+}

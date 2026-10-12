@@ -1,0 +1,108 @@
+{
+  "format": "jinr-mc-scene",
+  "format_version": "0.1",
+  "min_reader_version": "0.1",
+  "source": {
+    "tool": "freecad-mc-exporter",
+    "tool_version": "0.1.0",
+    "document": "block.FCStd"
+  },
+  "units": {
+    "length": "mm",
+    "angle": "deg",
+    "density": "g/cm3"
+  },
+  "extensions_used": [
+    "JINR_target_hints"
+  ],
+  "extensions_required": [],
+  "world": {
+    "material": "air",
+    "margin_percent": 10
+  },
+  "materials": [
+    {
+      "id": "air",
+      "name": "Воздух",
+      "nist": "G4_AIR",
+      "extensions": {
+        "JINR_target_hints": {
+          "fluka": {
+            "name": "AIR",
+            "predefined": true
+          }
+        }
+      }
+    },
+    {
+      "id": "concrete",
+      "name": "Бетон (NIST)",
+      "nist": "G4_CONCRETE"
+    }
+  ],
+  "bodies": [
+    {
+      "id": "block",
+      "name": "Бетонный блок",
+      "parent": null,
+      "material": "concrete",
+      "transform": {
+        "translation": [
+          0,
+          0,
+          200
+        ],
+        "rotation": {
+          "convention": "matrix_active",
+          "matrix": [
+            [
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              1,
+              0
+            ],
+            [
+              0,
+              0,
+              -1
+            ]
+          ]
+        }
+      },
+      "shape": {
+        "type": "box",
+        "size": [
+          1000,
+          600,
+          400
+        ]
+      },
+      "verification": {
+        "cad_volume": 240000000.0,
+        "bbox": [
+          [
+            -500,
+            -300,
+            0
+          ],
+          [
+            500,
+            300,
+            400
+          ]
+        ]
+      },
+      "extras": {
+        "freecad": {
+          "name": "Box",
+          "label": "Блок",
+          "type_id": "Part::Box"
+        }
+      }
+    }
+  ]
+}

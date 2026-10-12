@@ -1,0 +1,393 @@
+{
+  "format": "jinr-mc-scene",
+  "format_version": "0.1",
+  "min_reader_version": "0.1",
+  "source": {
+    "tool": "freecad-mc-exporter",
+    "tool_version": "0.1.0",
+    "document": "hall_B.FCStd"
+  },
+  "units": {
+    "length": "mm",
+    "angle": "deg",
+    "density": "g/cm3"
+  },
+  "extensions_used": [
+    "JINR_target_hints"
+  ],
+  "extensions_required": [],
+  "world": {
+    "material": "air",
+    "margin_percent": 10
+  },
+  "materials": [
+    {
+      "id": "air",
+      "name": "Воздух",
+      "nist": "G4_AIR",
+      "extensions": {
+        "JINR_target_hints": {
+          "fluka": {
+            "name": "AIR",
+            "predefined": true
+          }
+        }
+      }
+    },
+    {
+      "id": "vacuum",
+      "name": "Вакуум ионопровода",
+      "nist": "G4_Galactic",
+      "extensions": {
+        "JINR_target_hints": {
+          "fluka": {
+            "name": "VACUUM",
+            "predefined": true
+          },
+          "mcnp": {
+            "void": true
+          }
+        }
+      }
+    },
+    {
+      "id": "concrete",
+      "name": "Бетон (NIST)",
+      "nist": "G4_CONCRETE"
+    },
+    {
+      "id": "steel_304",
+      "name": "Сталь AISI 304 (иллюстративный состав)",
+      "density": 7.93,
+      "state": "solid",
+      "composition": {
+        "basis": "mass",
+        "components": [
+          {
+            "element": "Fe",
+            "fraction": 0.695
+          },
+          {
+            "element": "Cr",
+            "fraction": 0.19
+          },
+          {
+            "element": "Ni",
+            "fraction": 0.095
+          },
+          {
+            "element": "Mn",
+            "fraction": 0.02
+          }
+        ]
+      },
+      "provenance": "справочный состав для примера; для расчёта уточнить"
+    }
+  ],
+  "bodies": [
+    {
+      "id": "wall_b",
+      "name": "Стена защиты, ось B",
+      "parent": null,
+      "material": "concrete",
+      "transform": {
+        "translation": [
+          0,
+          0,
+          0
+        ],
+        "rotation": {
+          "convention": "identity"
+        }
+      },
+      "shape": {
+        "type": "boolean",
+        "op": "subtract",
+        "left": {
+          "type": "box",
+          "size": [
+            500,
+            3000,
+            2000
+          ]
+        },
+        "right": {
+          "type": "cylinder",
+          "radius": 100,
+          "height": 600,
+          "transform": {
+            "translation": [
+              0,
+              0,
+              0
+            ],
+            "rotation": {
+              "convention": "matrix_active",
+              "matrix": [
+                [
+                  0,
+                  0,
+                  1
+                ],
+                [
+                  0,
+                  1,
+                  0
+                ],
+                [
+                  -1,
+                  0,
+                  0
+                ]
+              ]
+            }
+          }
+        }
+      },
+      "verification": {
+        "cad_volume": 2984292036.7,
+        "bbox": [
+          [
+            -250,
+            -1500,
+            -1000
+          ],
+          [
+            250,
+            1500,
+            1000
+          ]
+        ]
+      },
+      "extras": {
+        "freecad": {
+          "name": "Cut001",
+          "label": "Стена_B",
+          "type_id": "Part::Cut"
+        }
+      }
+    },
+    {
+      "id": "pipe",
+      "name": "Ионопровод",
+      "parent": null,
+      "material": "steel_304",
+      "transform": {
+        "translation": [
+          0,
+          0,
+          0
+        ],
+        "rotation": {
+          "convention": "matrix_active",
+          "matrix": [
+            [
+              0,
+              0,
+              1
+            ],
+            [
+              0,
+              1,
+              0
+            ],
+            [
+              -1,
+              0,
+              0
+            ]
+          ]
+        }
+      },
+      "shape": {
+        "type": "cylinder",
+        "radius": 60,
+        "height": 4000
+      },
+      "verification": {
+        "cad_volume": 45238934.2,
+        "bbox": [
+          [
+            -2000,
+            -60,
+            -60
+          ],
+          [
+            2000,
+            60,
+            60
+          ]
+        ]
+      },
+      "extras": {
+        "freecad": {
+          "name": "Cylinder001",
+          "label": "Ионопровод",
+          "type_id": "Part::Cylinder"
+        }
+      }
+    },
+    {
+      "id": "pipe_bore",
+      "name": "Вакуум внутри ионопровода",
+      "parent": "pipe",
+      "material": "vacuum",
+      "transform": {
+        "translation": [
+          0,
+          0,
+          0
+        ],
+        "rotation": {
+          "convention": "identity"
+        }
+      },
+      "shape": {
+        "type": "cylinder",
+        "radius": 55,
+        "height": 3990
+      },
+      "verification": {
+        "cad_volume": 37918237.9,
+        "bbox": [
+          [
+            -55,
+            -55,
+            -1995
+          ],
+          [
+            55,
+            55,
+            1995
+          ]
+        ]
+      },
+      "extras": {
+        "freecad": {
+          "name": "Cylinder002",
+          "label": "Вакуум",
+          "type_id": "Part::Cylinder"
+        }
+      }
+    },
+    {
+      "id": "collimator",
+      "name": "Коллиматор",
+      "parent": null,
+      "material": "steel_304",
+      "transform": {
+        "translation": [
+          -1000,
+          0,
+          0
+        ],
+        "rotation": {
+          "convention": "matrix_active",
+          "matrix": [
+            [
+              0,
+              0,
+              1
+            ],
+            [
+              0,
+              1,
+              0
+            ],
+            [
+              -1,
+              0,
+              0
+            ]
+          ]
+        }
+      },
+      "shape": {
+        "type": "cone",
+        "radius_bottom": 200,
+        "radius_top": 150,
+        "height": 300,
+        "inner_radius_bottom": 70,
+        "inner_radius_top": 70
+      },
+      "verification": {
+        "cad_volume": 24441590.8,
+        "bbox": [
+          [
+            -1150,
+            -200,
+            -200
+          ],
+          [
+            -850,
+            200,
+            200
+          ]
+        ]
+      },
+      "extras": {
+        "freecad": {
+          "name": "Cone001",
+          "label": "Коллиматор",
+          "type_id": "Part::Cone"
+        }
+      }
+    },
+    {
+      "id": "magnet_yoke",
+      "name": "Ярмо магнита",
+      "parent": null,
+      "material": "steel_304",
+      "transform": {
+        "translation": [
+          1200,
+          0,
+          700
+        ],
+        "rotation": {
+          "convention": "euler_xyz_extrinsic_deg",
+          "angles": [
+            0,
+            0,
+            30
+          ]
+        }
+      },
+      "shape": {
+        "type": "mesh",
+        "uri": "meshes/magnet_yoke.stl",
+        "encoding": "stl-binary",
+        "sha256": "823b4d072afa97a3a7d5c3e077a4588664a85d32155692eabe4a39bd3acd6675",
+        "n_facets": 256,
+        "tessellation": {
+          "linear_deflection": 0.5,
+          "angular_deflection_deg": 5.0
+        },
+        "fallback_reason": "SPLINE_SURFACE",
+        "note": "профиль полюса - суперэллипс, не примитив"
+      },
+      "verification": {
+        "cad_volume": 133493376.8,
+        "bbox": [
+          [
+            886.9,
+            -272.3,
+            399.5
+          ],
+          [
+            1513.1,
+            272.3,
+            1000.5
+          ]
+        ]
+      },
+      "extras": {
+        "freecad": {
+          "name": "Extrude001",
+          "label": "Ярмо",
+          "type_id": "Part::Extrusion"
+        }
+      }
+    }
+  ]
+}
