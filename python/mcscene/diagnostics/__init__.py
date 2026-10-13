@@ -3,6 +3,7 @@
 Коды:
   E0xx, E1xx, E2xx, W0xx, W1xx, W2xx, I0xx, I2xx — из validate.py, без изменений;
   E3xx        — цель не умеет (фигура, материал) или не хватает данных:
+      E301 — фигура ещё не реализована в генераторе этой цели;
       E310 — материал задан своим составом без nist (свои составы — этап 3);
       E330 — у тела-меша нет verification.bbox, размер мира не оценить;
   W4xx, I4xx  — смена представления и имён:
@@ -48,13 +49,15 @@ _ORDER = {"ERROR": 0, "WARN": 1, "INFO": 2}
 
 
 def print_diagnostics(diags: list[Diagnostic], stream: TextIO | None = None,
-                      verbose: bool = False) -> None:
+                      verbose: bool = False, summary: bool = True) -> None:
     """Печать в том же виде, что у validate.py: ошибки, предупреждения, итог."""
     stream = stream or sys.stdout
     for d in sorted(diags, key=lambda x: _ORDER[x.level]):
         if d.level == "INFO" and not verbose:
             continue
         stream.write("%-5s %s  %s: %s\n" % (d.level, d.code, d.where, d.message))
+    if not summary:
+        return
     ne = sum(1 for d in diags if d.level == "ERROR")
     nw = sum(1 for d in diags if d.level == "WARN")
     stream.write("Итог: ошибок %d, предупреждений %d -> %s\n"

@@ -6,8 +6,8 @@ import pytest
 
 from mcscene.io.contract import load_contract_validator
 from mcscene.model import RotEuler, RotIdentity, RotMatrix, Scene
-from mcscene.passes.rotations import (IDENTITY, Rigid, apply, det, is_axis_permutation, mul,
-                                      to_matrix, transpose)
+from mcscene.passes.rotations import (IDENTITY, Rigid, apply, det, deviation, is_axis_permutation,
+                                      mul, orthonormalize, to_matrix, transpose)
 from mcscene.paths import CONTRACT_V0_1, TEST_SCENES, all_test_scenes, scene_id
 
 GOOD = sorted((CONTRACT_V0_1 / "examples").glob("*.json")) + all_test_scenes()
@@ -65,6 +65,31 @@ def test_arbitrary_angles_give_proper_rotation():
     assert abs(det(m) - 1) < 1e-12
     assert not is_axis_permutation(m)
     assert is_axis_permutation(euler(90, 0, 90))
+
+
+def test_rounded_matrix_is_made_exactly_orthonormal():
+    # Rz(30°), записанная с 7 знаками: validate.py это пропустит (отклонение < 1e-6),
+    # а g4scene требует 1e-9 — генератор должен довести матрицу сам.
+    c, s = 0.8660254, 0.5
+    rough = ((c, -s, 0), (s, c, 0), (0, 0, 1))
+    assert 1e-9 < deviation(rough) < 1e-6
+    m = to_matrix(RotMatrix(convention="matrix_active", matrix=rough))
+    assert deviation(m) < 1e-15
+    assert close(sum(m, ()), sum(rough, ()), 1e-7)               # почти не сдвинулась
+    assert abs(det(m) - 1) < 1e-15
+
+
+def test_orthonormalize_keeps_exact_matrices():
+    for m in [IDENTITY, ((0, -1, 0), (1, 0, 0), (0, 0, 1)), euler(30, -45, 70)]:
+        assert close(sum(orthonormalize(m), ()), sum(m, ()), 1e-15)
+
+
+@pytest.mark.parametrize("path", GOOD, ids=scene_id)
+def test_every_matrix_passes_g4scene_check(path):
+    # g4scene::RotationProblem в C++ требует отклонение не больше 1e-9
+    for where, _, tf in _all_transforms(path):
+        m = to_matrix(tf.rotation)
+        assert deviation(m) < 1e-12 and det(m) > 0, where
 
 
 def test_rotated_box_scene_matrix():

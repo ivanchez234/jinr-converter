@@ -25,7 +25,9 @@ FreeCAD (аддон JINRScene) → scene.json + meshes/ (формат jinr-mc-sc
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
-mcscene validate --strict scene.json
+mcscene validate --strict scene.json      # сцена соответствует контракту?
+mcscene check scene.json                  # что генератор Geant4 сделает с каждым телом
+mcscene check scene.json --plan           # + план генерации: мир, материалы, тела, пробные точки
 ```
 
 Подробнее, включая установку Geant4, — в `docs/setup.md`.

@@ -82,3 +82,17 @@ pytest                                                     # все тесты �
 mcscene validate --strict tests/scenes/*.json              # OK
 mcscene validate contracts/scene/v0.1/bad/b01_half_sizes.json   # E220, код выхода 1
 ```
+
+## Библиотека g4scene (C++)
+
+`cpp/g4scene/` — маленькая библиотека, которой пользуется сгенерированный код: повороты и размещение (`Transform`, `Place`), реестр материалов и объёмов (`Registry`), материалы NIST (`Nist`). В сгенерированные проекты она копируется исходниками, а отдельно собирается только ради своих тестов:
+
+```bash
+g4env                                              # подключить Geant4
+cd ~/jinr-converter
+cmake -S cpp/g4scene -B build/g4scene
+cmake --build build/g4scene -j$(nproc)
+ctest --test-dir build/g4scene --output-on-failure
+```
+
+Тест должен напечатать `g4scene: OK, N проверок`. Главное, что он проверяет: Geant4 понимает наш поворот так же, как контракт (активный поворот «тело -> родитель»), и размещение через `G4Transform3D` ставит вложенное тело туда, куда нужно. Папка `build/` в git не попадает.

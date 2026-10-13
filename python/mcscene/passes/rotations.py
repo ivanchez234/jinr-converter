@@ -5,6 +5,10 @@
   euler_xyz_extrinsic_deg — повороты вокруг неподвижных осей: сначала X на a,
                             потом Y на b, потом Z на c, то есть R = Rz(c)·Ry(b)·Rx(a).
 В обоих случаях точка тела p попадает в систему родителя как R·p + t.
+
+Матрица из JSON доводится до точно ортонормированной (orthonormalize): validate.py
+пропускает отклонение до 1e-6 (например, если элементы записаны с округлением),
+а g4scene в C++ проверяет поворот с допуском 1e-9 и иначе остановит Geant4.
 """
 from __future__ import annotations
 
@@ -24,7 +28,7 @@ def to_matrix(rot) -> Mat3:
     if rot is None or rot.convention == "identity":
         return IDENTITY
     if rot.convention == "matrix_active":
-        return snap(rot.matrix)
+        return snap(orthonormalize(rot.matrix))
     if rot.convention == "euler_xyz_extrinsic_deg":
         a, b, c = (math.radians(x) for x in rot.angles)
         return snap(mul(rz(c), mul(ry(b), rx(a))))
@@ -80,6 +84,27 @@ def det(m: Mat3) -> float:
     return (m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1])
             - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0])
             + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]))
+
+
+def deviation(m: Mat3) -> float:
+    """max |(M·Mᵀ)_ij − δ_ij| — насколько матрица не ортонормирована."""
+    mmt = mul(m, transpose(m))
+    return max(abs(mmt[i][j] - (1.0 if i == j else 0.0)) for i in range(3) for j in range(3))
+
+
+def orthonormalize(m: Sequence[Sequence[float]], max_iter: int = 20) -> Mat3:
+    """Ближайшая ортонормированная матрица (итерация Бьёрка: R <- R·(3I − RᵀR)/2).
+
+    Для почти ортонормированной матрицы сходится за 2–3 шага, точную не меняет.
+    """
+    r: Mat3 = tuple(tuple(float(x) for x in row) for row in m)  # type: ignore[assignment]
+    for _ in range(max_iter):
+        if deviation(r) < 1e-15:
+            break
+        rtr = mul(transpose(r), r)
+        k = tuple(tuple((3.0 if i == j else 0.0) - rtr[i][j] for j in range(3)) for i in range(3))
+        r = tuple(tuple(x / 2 for x in row) for row in mul(r, k))  # type: ignore[arg-type]
+    return r
 
 
 def is_axis_permutation(m: Mat3) -> bool:
