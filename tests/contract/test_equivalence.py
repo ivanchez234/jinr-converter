@@ -1,17 +1,18 @@
 """Главный тест этапа 0: mcscene validate выносит тот же вердикт, что validate.py.
 
-Прогоняется на всех примерах контракта (хороших и плохих) и на всех сценах из
-tests/scenes, в строгом и обычном режиме.
+Прогоняется на всех примерах контракта (хороших и плохих), на ручных сценах из
+tests/scenes и на образцах Никиты из tests/fixtures/freecad/*/scene.json,
+в строгом и обычном режиме.
 """
 import pytest
 
 from mcscene.io.contract import load_contract_validator
 from mcscene.io.load import load_and_validate
-from mcscene.paths import CONTRACT_V0_1, TEST_SCENES
+from mcscene.paths import CONTRACT_V0_1, TEST_SCENES, all_test_scenes, scene_id
 
 V = load_contract_validator()
 
-GOOD = sorted((CONTRACT_V0_1 / "examples").glob("*.json")) + sorted(TEST_SCENES.glob("*.json"))
+GOOD = sorted((CONTRACT_V0_1 / "examples").glob("*.json")) + all_test_scenes()
 BAD = sorted((CONTRACT_V0_1 / "bad").glob("*.json"))
 
 
@@ -23,7 +24,7 @@ def test_fixture_sets_are_complete():
 
 
 @pytest.mark.parametrize("strict", [True, False], ids=["strict", "normal"])
-@pytest.mark.parametrize("path", GOOD + BAD, ids=lambda p: p.name)
+@pytest.mark.parametrize("path", GOOD + BAD, ids=scene_id)
 def test_same_verdict_as_validate_py(path, strict):
     ref = V.validate_file(str(path), strict=strict)
     scene, ours = load_and_validate(path, strict=strict)
@@ -35,13 +36,13 @@ def test_same_verdict_as_validate_py(path, strict):
     assert (scene is None) == bool(our_err)        # Scene IR есть ровно тогда, когда нет ошибок
 
 
-@pytest.mark.parametrize("path", GOOD, ids=lambda p: p.name)
+@pytest.mark.parametrize("path", GOOD, ids=scene_id)
 def test_good_scenes_parse_into_models(path):
     scene, diags = load_and_validate(path, strict=True)
     assert scene is not None, [d for d in diags if d.level == "ERROR"]
 
 
-@pytest.mark.parametrize("path", BAD, ids=lambda p: p.name)
+@pytest.mark.parametrize("path", BAD, ids=scene_id)
 def test_bad_examples_are_rejected(path):
     scene, diags = load_and_validate(path, strict=True)
     assert scene is None

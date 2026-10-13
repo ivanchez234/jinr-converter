@@ -1,0 +1,98 @@
+{
+  "format": "jinr-mc-scene",
+  "format_version": "0.1",
+  "min_reader_version": "0.1",
+  "source": {
+    "tool": "freecad-mc-exporter",
+    "tool_version": "0.1.0",
+    "document": "box_20x40x70.FCStd"
+  },
+  "units": {
+    "length": "mm",
+    "angle": "deg",
+    "density": "g/cm3"
+  },
+  "extensions_used": [],
+  "extensions_required": [],
+  "world": {
+    "material": "air",
+    "margin_percent": 10
+  },
+  "materials": [
+    {
+      "id": "air",
+      "name": "Воздух",
+      "nist": "G4_AIR"
+    },
+    {
+      "id": "iron",
+      "name": "Железо",
+      "nist": "G4_Fe"
+    }
+  ],
+  "bodies": [
+    {
+      "id": "Box",
+      "name": "Железная коробка 20×40×70",
+      "parent": null,
+      "material": "iron",
+      "transform": {
+        "translation": [
+          310,
+          -130,
+          115
+        ],
+        "rotation": {
+          "convention": "matrix_active",
+          "matrix": [
+            [
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              1,
+              0
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ]
+        }
+      },
+      "shape": {
+        "type": "box",
+        "size": [
+          20,
+          40,
+          70
+        ]
+      },
+      "verification": {
+        "cad_volume": 56000,
+        "bbox": [
+          [
+            300,
+            -150,
+            80
+          ],
+          [
+            320,
+            -110,
+            150
+          ]
+        ]
+      },
+      "extras": {
+        "freecad": {
+          "name": "Box",
+          "label": "Железная коробка 20×40×70",
+          "type_id": "Part::Box"
+        }
+      }
+    }
+  ]
+}

@@ -7,9 +7,9 @@ from pydantic import ValidationError
 
 from mcscene.io.load import drop_fields
 from mcscene.model import Box, RotEuler, RotMatrix, Scene
-from mcscene.paths import CONTRACT_V0_1, TEST_SCENES
+from mcscene.paths import CONTRACT_V0_1, TEST_SCENES, all_test_scenes, scene_id
 
-EXAMPLES = sorted((CONTRACT_V0_1 / "examples").glob("*.json")) + sorted(TEST_SCENES.glob("*.json"))
+EXAMPLES = sorted((CONTRACT_V0_1 / "examples").glob("*.json")) + all_test_scenes()
 
 
 def load(path):
@@ -22,7 +22,7 @@ def box_doc():
     return load(TEST_SCENES / "box_in_world.json")
 
 
-@pytest.mark.parametrize("path", EXAMPLES, ids=lambda p: p.name)
+@pytest.mark.parametrize("path", EXAMPLES, ids=scene_id)
 def test_round_trip_keeps_every_field(path):
     """Разбор и обратная выгрузка дают исходный документ: модель не теряет поля."""
     doc = load(path)
