@@ -35,11 +35,25 @@ def main(argv: list[str] | None = None) -> int:
                    help="напечатать план генерации (JSON): мир, материалы, тела, пробные точки")
     _common(c)
 
+    g = sub.add_parser("generate", help="сгенерировать C++ проект Geant4",
+                       description="Проверить сцену и записать готовый CMake-проект Geant4: "
+                                   "геометрию, стенд проверки и копию g4scene. "
+                                   "Компиляция — отдельный шаг (cmake).")
+    g.add_argument("scene", metavar="scene.json")
+    g.add_argument("-t", "--target", choices=TARGETS, default="geant4", help="цель (по умолчанию geant4)")
+    g.add_argument("-o", "--out", required=True, metavar="ПАПКА", help="куда записать проект, например out/kub")
+    g.add_argument("--force", action="store_true",
+                   help="перезаписать уже сгенерированный проект (user/ и build/ не трогаются)")
+    _common(g)
+
     args = p.parse_args(argv)
     if args.cmd == "validate":
         return cmd_validate(args.scenes, strict=args.strict, verbose=args.verbose)
     if args.cmd == "check":
         return cmd_check(args.scene, strict=args.strict, verbose=args.verbose, show_plan=args.plan)
+    if args.cmd == "generate":
+        return cmd_generate(args.scene, args.out, force=args.force, strict=args.strict,
+                            verbose=args.verbose)
     return 2
 
 
@@ -82,6 +96,55 @@ def cmd_check(path: str, strict: bool, verbose: bool, show_plan: bool) -> int:
     diags = diags + result.diagnostics
 
     print("== %s -> geant4" % path)
+    _print_check(result, diags, verbose)
+
+    if show_plan and result.plan is not None:
+        print()
+        print(dump_json(asdict(result.plan)))
+    return 0 if result.plan is not None else 1
+
+
+def cmd_generate(path: str, out: str, force: bool, strict: bool, verbose: bool) -> int:
+    from .backends.geant4.generate import GenerateError, write_project
+    from .backends.geant4.plan import build_plan
+    from .io.load import load_and_validate
+
+    scene, diags = load_and_validate(path, strict=strict)
+    if scene is None:
+        print("== %s: сцена не прошла проверку контракта, файлы не записаны" % path)
+        print_diagnostics(diags, verbose=verbose)
+        return 2 if any(d.code == "E001" for d in diags) else 1
+
+    result = build_plan(scene, path)
+    diags = diags + result.diagnostics
+    print("== %s -> geant4 -> %s" % (path, out))
+    if result.plan is None:
+        _print_check(result, diags, verbose)
+        print("файлы не записаны")
+        return 1
+
+    try:
+        written, user_created = write_project(result.plan, diags, out, force=force)
+    except GenerateError as e:
+        print("ОШИБКА: %s" % e)
+        return 2
+
+    shown = [d for d in diags if verbose or d.level != "INFO"]
+    if shown:
+        print_diagnostics(diags, verbose=verbose, summary=False)
+    print("записано файлов: %d (тел: %d)" % (len(written), len(result.plan.bodies)))
+    print("user/DetectorConstruction.hh: %s" % (
+        "создан" if user_created else "уже был, не тронут"))
+    print()
+    print("Дальше:")
+    print("  source $HOME/geant4/install/bin/geant4.sh      # или g4env")
+    print("  cmake -S %s -B %s/build" % (out, out))
+    print("  cmake --build %s/build -j$(nproc)" % out)
+    print("  %s/build/check_geometry" % out)
+    return 0
+
+
+def _print_check(result, diags, verbose: bool) -> None:
     w_id = max([len("id")] + [len(r.body_id) for r in result.rows])
     w_type = max([len("тип")] + [len(r.shape_type) for r in result.rows])
     print("%-*s  %-*s  %-11s %s" % (w_id, "id", w_type, "тип", "действие", "примечание"))
@@ -101,11 +164,6 @@ def cmd_check(path: str, strict: bool, verbose: bool, show_plan: bool) -> int:
         ne, plural(ne, "ошибка", "ошибки", "ошибок"),
         nw, plural(nw, "предупреждение", "предупреждения", "предупреждений"),
         "можно генерировать" if result.plan is not None else "генерировать нельзя"))
-
-    if show_plan and result.plan is not None:
-        print()
-        print(dump_json(asdict(result.plan)))
-    return 0 if result.plan is not None else 1
 
 
 def dump_json(obj, indent: int = 0) -> str:

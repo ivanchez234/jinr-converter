@@ -24,7 +24,7 @@ from ... import __version__
 from ...diagnostics import Diagnostic, has_errors
 from ...passes.materials import plan_materials
 from ...passes.naming import WORLD, assign_names
-from ...passes.rotations import Mat3, Rigid, Vec3
+from ...passes.rotations import IDENTITY, Mat3, Rigid, Vec3
 from ...passes.world import WorldPlan, plan_world
 from ..base import CheckRow
 from . import cppfmt as f
@@ -65,6 +65,7 @@ class BodyPlan:
     material_id: str
     mother: str          # имя объёма-матери: "world" или объём родителя
     matrix: Mat3         # поворот «тело -> родитель», по строкам
+    rotation_note: str   # откуда поворот: «углы X, Y, Z = 0°, 0°, 90° ...»; "" — без поворота
     translation: Vec3    # центр тела в системе родителя, мм
     cad_volume: float    # мм3
     volume_tol: float    # относительный допуск объёма в стенде
@@ -129,6 +130,7 @@ def build_plan(scene, input_path: str | os.PathLike) -> PlanResult:
             material_id=b.material,
             mother=names[b.parent].volume if b.parent is not None else WORLD,
             matrix=local.r,
+            rotation_note=_rotation_note(b.transform.rotation, local.r),
             translation=_clean(local.t),
             cad_volume=b.verification.cad_volume,
             volume_tol=BOX_VOLUME_TOL,
@@ -212,6 +214,15 @@ def _title(b, mat_name: str, g4_name: str) -> str:
         parts.append("«%s»" % f.comment(b.name))
     mat = mat_name if mat_name == g4_name else "%s, %s" % (mat_name, g4_name)
     return "%s; материал: %s" % (" — ".join(parts), mat)
+
+
+def _rotation_note(rot, m: Mat3) -> str:
+    if m == IDENTITY:
+        return ""
+    if rot.convention == "euler_xyz_extrinsic_deg":
+        return "из JSON: углы X, Y, Z = %s (сначала X, потом Y, потом Z)" % ", ".join(
+            f.num(a) + "°" for a in rot.angles)
+    return "из JSON: матрица, столбцы — оси тела в системе родителя"
 
 
 def _clean(v) -> Vec3:

@@ -18,5 +18,8 @@ mcscene = "mcscene.cli:main"
 [tool.setuptools.packages.find]
 where = ["python"]
 
+[tool.setuptools.package-data]
+"mcscene.backends.geant4" = ["templates/*.in"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

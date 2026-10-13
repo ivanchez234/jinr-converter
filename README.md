@@ -28,6 +28,8 @@ pip install -e ".[dev]"
 mcscene validate --strict scene.json      # сцена соответствует контракту?
 mcscene check scene.json                  # что генератор Geant4 сделает с каждым телом
 mcscene check scene.json --plan           # + план генерации: мир, материалы, тела, пробные точки
+mcscene generate scene.json -o out/hall   # записать C++ проект Geant4 (компиляция — отдельно)
+tools/e2e.sh                              # все тестовые сцены: генерация -> сборка -> стенд
 ```
 
 Подробнее, включая установку Geant4, — в `docs/setup.md`.

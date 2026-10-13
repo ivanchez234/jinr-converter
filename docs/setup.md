@@ -96,3 +96,24 @@ ctest --test-dir build/g4scene --output-on-failure
 ```
 
 Тест должен напечатать `g4scene: OK, N проверок`. Главное, что он проверяет: Geant4 понимает наш поворот так же, как контракт (активный поворот «тело -> родитель»), и размещение через `G4Transform3D` ставит вложенное тело туда, куда нужно. Папка `build/` в git не попадает.
+
+## Генерация проекта Geant4 и проверка
+
+```bash
+source .venv/bin/activate
+g4env
+mcscene generate tests/scenes/kub.json -o out/kub     # только пишет файлы
+cmake -S out/kub -B out/kub/build
+cmake --build out/kub/build -j$(nproc)
+out/kub/build/check_geometry                          # OK: 0 problems
+```
+
+`out/kub/generated/` — геометрия на C++, её можно читать до сборки. Повторная генерация в ту же папку — с `--force`: перезаписывается всё, кроме `user/` (ваши правки) и `build/`.
+
+Все тестовые сцены разом (генерация, сборка, стенд), логи — в `build/e2e/<сцена>.log`:
+
+```bash
+tools/e2e.sh
+```
+
+Скрипт сам подключает Geant4 через `$HOME/geant4/install/bin/geant4.sh`; другой путь можно задать переменной `G4_SETUP`.
