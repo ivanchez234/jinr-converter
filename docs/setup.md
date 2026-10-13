@@ -108,6 +108,12 @@ cmake --build out/kub/build -j$(nproc)
 out/kub/build/check_geometry                          # OK: 0 problems
 ```
 
+Окно Geant4 с моделью (частиц пока нет, только геометрия; запускать из папки сборки, там лежит `vis.mac`):
+
+```bash
+cd out/kub/build && ./scene_app
+```
+
 `out/kub/generated/` — геометрия на C++, её можно читать до сборки. Повторная генерация в ту же папку — с `--force`: перезаписывается всё, кроме `user/` (ваши правки) и `build/`.
 
 Все тестовые сцены разом (генерация, сборка, стенд), логи — в `build/e2e/<сцена>.log`:
@@ -117,3 +123,25 @@ tools/e2e.sh
 ```
 
 Скрипт сам подключает Geant4 через `$HOME/geant4/install/bin/geant4.sh`; другой путь можно задать переменной `G4_SETUP`.
+
+## Тесты
+
+```bash
+source .venv/bin/activate
+pytest                       # быстрые тесты Python (секунды), Geant4 не нужен
+tools/e2e.sh                 # сквозной прогон с настоящим Geant4 (пара минут)
+```
+
+`tools/e2e.sh` состоит из двух частей:
+
+1. Хорошие сцены (`tests/scenes/`, `tests/fixtures/freecad/`): генерация, сборка, стенд `check_geometry` и `scene_app batch.mac` — всё должно пройти.
+2. Сцены с нарочными ошибками (`tests/debug/`): генерируются с `--unsafe-skip-checks`, и стенд обязан упасть. Если стенд сказал OK на сцене с перекрытием, это FAIL: значит, стенд ничего не ловит.
+
+### Golden-тесты
+
+`tests/golden/<сцена>/geant4/` — эталонные копии сгенерированного проекта. Если генератор начал печатать что-то по-другому, `pytest` покажет разницу. Если изменение намеренное, обновите эталоны и обязательно прочитайте разницу перед коммитом:
+
+```bash
+UPDATE_GOLDEN=1 pytest tests/golden
+git diff tests/golden
+```

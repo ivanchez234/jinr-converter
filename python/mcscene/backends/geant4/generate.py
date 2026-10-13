@@ -4,6 +4,7 @@ out/<сцена>/
   CMakeLists.txt
   generated/   GeneratedDetectorConstruction.hh/.cc, ExpectedChecks.hh
   harness/     check_geometry.cc
+  app/         main.cc, vis.mac, batch.mac — окно Geant4 с моделью (scene_app)
   g4scene/     копия cpp/g4scene (include/, src/)
   user/        DetectorConstruction.hh — создаётся один раз, дальше ваш
   report.json
@@ -24,9 +25,9 @@ from .plan import G4Plan
 from .printer import USER_HH, render, render_user_header
 
 MARKER = ".mcscene"
-OWNED_DIRS = ("generated", "harness", "g4scene")       # пересоздаются целиком
+OWNED_DIRS = ("generated", "harness", "app", "g4scene")       # пересоздаются целиком
 MARKER_TEXT = ("Эту папку создал mcscene. При mcscene generate --force перезаписываются\n"
-               "generated/, harness/, g4scene/, CMakeLists.txt и report.json;\n"
+               "generated/, harness/, app/, g4scene/, CMakeLists.txt и report.json;\n"
                "user/ и build/ не трогаются никогда.\n")
 
 

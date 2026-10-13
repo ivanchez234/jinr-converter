@@ -26,9 +26,21 @@ from ..model.scene import Scene
 from .contract import load_contract_validator, load_schema
 
 
-def load_and_validate(path: str | os.PathLike, strict: bool = False
+# Геометрические ошибки контракта, которые можно обойти флагом --unsafe-skip-checks:
+# объём (E220), bbox (E240), ребёнок торчит из родителя (E250), соседи пересекаются (E251).
+# Ровно это должен ловить стенд check_geometry; флаг нужен, чтобы проверить, что он ловит.
+# Битые ссылки, структура и меши не обходятся: с ними генератор не сможет работать вообще.
+UNSAFE_SKIPPABLE = frozenset({"E220", "E240", "E250", "E251"})
+
+
+def load_and_validate(path: str | os.PathLike, strict: bool = False,
+                      unsafe_skip_checks: bool = False
                       ) -> tuple[Scene | None, list[Diagnostic]]:
-    """Возвращает (Scene или None, диагностики). Scene есть только при отсутствии ошибок."""
+    """Возвращает (Scene или None, диагностики). Scene есть только при отсутствии ошибок.
+
+    unsafe_skip_checks=True (только для отладки): ошибки из UNSAFE_SKIPPABLE
+    превращаются в предупреждения с пометкой, и сцена всё равно разбирается.
+    """
     v = load_contract_validator()
     rep = v.Report(strict)
     path = str(path)
@@ -45,6 +57,11 @@ def load_and_validate(path: str | os.PathLike, strict: bool = False
 
     v.validate_document(doc, os.path.dirname(os.path.abspath(path)), rep, load_schema())
     diags = _diags(rep)
+    if unsafe_skip_checks:
+        diags = [Diagnostic("WARN", d.code, d.where, "[пропущено --unsafe-skip-checks] " + d.message,
+                            d.body_id, d.target)
+                 if d.level == "ERROR" and d.code in UNSAFE_SKIPPABLE else d
+                 for d in diags]
     if has_errors(diags):
         return None, diags
 

@@ -82,6 +82,7 @@ class G4Plan:
     world: WorldPlan
     materials: tuple[MaterialEntry, ...]
     bodies: tuple[BodyPlan, ...]           # родители раньше детей
+    unsafe: bool = False                   # сгенерировано с --unsafe-skip-checks (отладка)
 
 
 @dataclass(frozen=True)
@@ -91,7 +92,7 @@ class PlanResult:
     diagnostics: list[Diagnostic]
 
 
-def build_plan(scene, input_path: str | os.PathLike) -> PlanResult:
+def build_plan(scene, input_path: str | os.PathLike, unsafe: bool = False) -> PlanResult:
     diags: list[Diagnostic] = []
     rows, d = check(scene)
     diags += d
@@ -148,6 +149,7 @@ def build_plan(scene, input_path: str | os.PathLike) -> PlanResult:
         world=world,
         materials=materials,
         bodies=tuple(bodies),
+        unsafe=unsafe,
     )
     return PlanResult(plan, rows, diags)
 

@@ -1,0 +1,17 @@
+// Этот файл mcscene создал один раз, и дальше он ваш: генератор его не
+// перезаписывает, даже с --force. Здесь удобно дописывать то, чего нет в
+// scene.json: цвета, чувствительные детекторы, свои объёмы.
+#pragma once
+
+#include "GeneratedDetectorConstruction.hh"
+
+class DetectorConstruction : public GeneratedDetectorConstruction {
+ protected:
+  // Вызывается сразу после того, как построены материалы сцены:
+  // можно поменять свойства материалов или добавить свои через fReg.AddMaterial.
+  void ConfigureMaterials() override {}
+
+  // Вызывается, когда вся геометрия сцены построена. Объёмы сцены доступны
+  // по id из scene.json: LV("Body"), материалы — Mat("iron").
+  void PostConstruct(G4LogicalVolume* /*world*/) override {}
+};

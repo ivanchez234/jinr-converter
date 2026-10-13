@@ -1,0 +1,3 @@
+Эту папку создал mcscene. При mcscene generate --force перезаписываются
+generated/, harness/, app/, g4scene/, CMakeLists.txt и report.json;
+user/ и build/ не трогаются никогда.

@@ -44,6 +44,9 @@ def main(argv: list[str] | None = None) -> int:
     g.add_argument("-o", "--out", required=True, metavar="ПАПКА", help="куда записать проект, например out/kub")
     g.add_argument("--force", action="store_true",
                    help="перезаписать уже сгенерированный проект (user/ и build/ не трогаются)")
+    g.add_argument("--unsafe-skip-checks", action="store_true",
+                   help="ОТЛАДКА: генерировать, даже если сцена нарушает геометрические правила "
+                        "контракта (E220, E240, E250, E251) — чтобы убедиться, что стенд это поймает")
     _common(g)
 
     args = p.parse_args(argv)
@@ -53,7 +56,7 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_check(args.scene, strict=args.strict, verbose=args.verbose, show_plan=args.plan)
     if args.cmd == "generate":
         return cmd_generate(args.scene, args.out, force=args.force, strict=args.strict,
-                            verbose=args.verbose)
+                            verbose=args.verbose, unsafe=args.unsafe_skip_checks)
     return 2
 
 
@@ -104,20 +107,24 @@ def cmd_check(path: str, strict: bool, verbose: bool, show_plan: bool) -> int:
     return 0 if result.plan is not None else 1
 
 
-def cmd_generate(path: str, out: str, force: bool, strict: bool, verbose: bool) -> int:
+def cmd_generate(path: str, out: str, force: bool, strict: bool, verbose: bool,
+                 unsafe: bool = False) -> int:
     from .backends.geant4.generate import GenerateError, write_project
     from .backends.geant4.plan import build_plan
     from .io.load import load_and_validate
 
-    scene, diags = load_and_validate(path, strict=strict)
+    scene, diags = load_and_validate(path, strict=strict, unsafe_skip_checks=unsafe)
     if scene is None:
         print("== %s: сцена не прошла проверку контракта, файлы не записаны" % path)
         print_diagnostics(diags, verbose=verbose)
         return 2 if any(d.code == "E001" for d in diags) else 1
 
-    result = build_plan(scene, path)
+    result = build_plan(scene, path, unsafe=unsafe)
     diags = diags + result.diagnostics
     print("== %s -> geant4 -> %s" % (path, out))
+    if unsafe:
+        print("ВНИМАНИЕ: --unsafe-skip-checks — геометрические проверки контракта пропущены, "
+              "проект только для отладки")
     if result.plan is None:
         _print_check(result, diags, verbose)
         print("файлы не записаны")
@@ -140,7 +147,8 @@ def cmd_generate(path: str, out: str, force: bool, strict: bool, verbose: bool) 
     print("  source $HOME/geant4/install/bin/geant4.sh      # или g4env")
     print("  cmake -S %s -B %s/build" % (out, out))
     print("  cmake --build %s/build -j$(nproc)" % out)
-    print("  %s/build/check_geometry" % out)
+    print("  %s/build/check_geometry                 # стенд проверки" % out)
+    print("  cd %s/build && ./scene_app             # окно Geant4 с моделью" % out)
     return 0
 
 
