@@ -9,7 +9,7 @@
   },
   "input": {
     "file": "scene.json",
-    "sha256": "cb1435098dd4ccb856441866efd852ce37256bc52641ca77f4f9719d69048fc8",
+    "sha256": "28a7c621efb85993bb6455dbc16d2c5ed1ef92c3a5924137cf683e2d32875937",
     "format_version": "0.1"
   },
   "world": {
@@ -33,8 +33,8 @@
   ],
   "bodies": [
     {
-      "id": "Box",
-      "volume": "Box",
+      "id": "Body",
+      "volume": "Body",
       "mother": "world",
       "material": "iron",
       "cad_volume_mm3": 56000.0,

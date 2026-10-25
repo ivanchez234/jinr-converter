@@ -7,7 +7,9 @@ from mcscene.cli import main
 from mcscene.io.load import load_and_validate
 from mcscene.paths import CONTRACT_V0_1, FREECAD_FIXTURES, G4SCENE_SRC, TEST_SCENES
 
-BOX02 = FREECAD_FIXTURES / "02_box_20x40x70" / "scene.json"
+# Рукописный эталон коробки: в нём известны id ("Box") и размеры без поворота.
+# Настоящий экспорт (scene.json рядом) проверяют тест эквивалентности, golden и e2e.sh.
+BOX02 = FREECAD_FIXTURES / "02_box_20x40x70" / "etalon.json"
 
 EXPECTED_FILES = {
     ".mcscene",
@@ -62,11 +64,11 @@ def test_box02_project(tmp_path, capsys):
     assert '{302, -146, 87, "Box", "G4_Fe"},' in checks      # угол: центр − (8, 16, 28)
 
     cmake = (out / "CMakeLists.txt").read_text("utf-8")
-    assert "project(scene_02_box_20x40x70 CXX)" in cmake
+    assert "project(scene_etalon CXX)" in cmake
     assert "add_executable(check_geometry harness/check_geometry.cc)" in cmake
 
     report = json.loads((out / "report.json").read_text("utf-8"))
-    assert report["input"]["file"] == "scene.json" and len(report["input"]["sha256"]) == 64
+    assert report["input"]["file"] == "etalon.json" and len(report["input"]["sha256"]) == 64
     assert report["bodies"][0]["probes"] == 9
 
 

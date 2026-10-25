@@ -25,6 +25,7 @@ SCENES = {
     "box_in_world": TEST_SCENES / "box_in_world.json",
     "nested_boxes": TEST_SCENES / "nested_boxes.json",
     "rotated_box": TEST_SCENES / "rotated_box.json",
+    "01_kub": FREECAD_FIXTURES / "01_kub" / "scene.json",
     "02_box_20x40x70": FREECAD_FIXTURES / "02_box_20x40x70" / "scene.json",
 }
 

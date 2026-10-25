@@ -4,7 +4,7 @@
   E0xx, E1xx, E2xx, W0xx, W1xx, W2xx, I0xx, I2xx — из validate.py, без изменений;
   E3xx        — цель не умеет (фигура, материал) или не хватает данных:
       E301 — фигура ещё не реализована в генераторе этой цели;
-      E310 — материал задан своим составом без nist (свои составы — этап 3);
+      E310 — материал задан своим составом без nist (свои составы — этап 4);
       E330 — у тела-меша нет verification.bbox, размер мира не оценить;
   W4xx, I4xx  — смена представления и имён:
       I401 — имя объёма или C++ функции изменено (занято или совпало после замены '-');
@@ -39,6 +39,30 @@ class Diagnostic:
     def from_issue(cls, issue) -> "Diagnostic":
         """Сообщение validate.py (Issue: level, code, where, msg) -> Diagnostic."""
         return cls(issue.level, issue.code, issue.where, issue.msg)
+
+
+class Diagnostics(list):
+    """Сборщик сообщений: все проходы пишут в один список.
+
+        diags = Diagnostics()
+        diags.error("E330", "bodies/yoke/verification/bbox", "у тела-меша нет bbox", body_id="yoke")
+        if diags.has_errors: ...
+
+    Это обычный список Diagnostic, поэтому его можно перебирать, складывать и сравнивать.
+    """
+
+    def error(self, code: str, where: str, message: str, **kw) -> None:
+        self.append(Diagnostic("ERROR", code, where, message, **kw))
+
+    def warn(self, code: str, where: str, message: str, **kw) -> None:
+        self.append(Diagnostic("WARN", code, where, message, **kw))
+
+    def info(self, code: str, where: str, message: str, **kw) -> None:
+        self.append(Diagnostic("INFO", code, where, message, **kw))
+
+    @property
+    def has_errors(self) -> bool:
+        return has_errors(self)
 
 
 def has_errors(diags: Iterable[Diagnostic]) -> bool:

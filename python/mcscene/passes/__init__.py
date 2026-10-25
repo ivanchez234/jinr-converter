@@ -1,11 +1,17 @@
-"""Общие проходы над Scene IR (этап 1, пункт 1.1 плана).
+"""Общие проходы над Scene IR — для любой цели.
 
 Проходы не знают про конкретную цель (Geant4, OpenMC, ...) и ничего не печатают:
-они готовят данные, из которых потом собирается план генерации.
+каждый пишет сообщения в общий сборщик Diagnostics и возвращает свой результат.
 
-  rotations — любая запись поворота -> матрица 3×3; жёсткое преобразование Rigid;
-  bbox      — габаритные коробки форм и тел;
-  world     — размер мира;
-  naming    — имена объёмов и C++ функций;
-  materials — какие материалы нужны и можно ли их построить.
+  base      — Pass: общий вход run(scene, diags);
+  world     — WorldPass: размер мира;
+  materials — MaterialPass: какие материалы нужны и можно ли их построить.
+
+Имена объёмов зависят от цели (у Geant4 одни правила, у FLUKA — имена до 8 символов),
+поэтому они у цели: backends/geant4/naming.py. Повороты и габариты — объекты в geometry/.
 """
+from .base import Pass
+from .materials import MaterialPass, MaterialPlan
+from .world import WorldPass, WorldPlan
+
+__all__ = ["MaterialPass", "MaterialPlan", "Pass", "WorldPass", "WorldPlan"]

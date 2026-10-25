@@ -1,0 +1,21 @@
+куб
+
+cd ~/jinr-converter
+source .venv/bin/activate
+g4env
+mcscene generate tests/fixtures/freecad/01_kub/scene.json -o out/01_kub --force
+cmake -S out/01_kub -B out/01_kub/build
+cmake --build out/01_kub/build -j$(nproc)
+out/01_kub/build/check_geometry
+cd out/01_kub/build && ./scene_app
+
+параллепиипед
+
+cd ~/jinr-converter
+source .venv/bin/activate
+g4env
+mcscene generate tests/fixtures/freecad/02_box_20x40x70/scene.json -o out/02_box --force
+cmake -S out/02_box -B out/02_box/build
+cmake --build out/02_box/build -j$(nproc)
+out/02_box/build/check_geometry
+cd out/02_box/build && ./scene_app

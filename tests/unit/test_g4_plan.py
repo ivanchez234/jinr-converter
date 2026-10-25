@@ -5,14 +5,16 @@ from itertools import product
 
 import pytest
 
-from mcscene.backends.geant4.cppfmt import num
-from mcscene.backends.geant4.plan import build_plan, scene_name, topological_order
+from mcscene.backends.geant4.filters import num
+from mcscene.backends.geant4.plan import Geant4Planner, scene_name
 from mcscene.io.contract import load_contract_validator
 from mcscene.model import Scene
-from mcscene.passes.rotations import IDENTITY
+from mcscene.geometry import IDENTITY
 from mcscene.paths import CONTRACT_V0_1, FREECAD_FIXTURES, TEST_SCENES, all_test_scenes, scene_id
 
-BOX02 = FREECAD_FIXTURES / "02_box_20x40x70" / "scene.json"
+# Рукописный эталон коробки: в нём известны id ("Box") и размеры без поворота.
+# Настоящий экспорт (scene.json рядом) проверяют тест эквивалентности, golden и e2e.sh.
+BOX02 = FREECAD_FIXTURES / "02_box_20x40x70" / "etalon.json"
 
 
 def load(path):
@@ -21,7 +23,7 @@ def load(path):
 
 
 def plan_of(path):
-    r = build_plan(load(path), path)
+    r = Geant4Planner(load(path), path).build()
     assert r.plan is not None, [d for d in r.diagnostics if d.level == "ERROR"]
     return r.plan
 
@@ -37,18 +39,19 @@ def test_number_format(x, s):
 # --- коробка Никиты 02 ---
 def test_box02_plan():
     p = plan_of(BOX02)
-    assert p.scene_name == "02_box_20x40x70"
-    assert p.input_name == "scene.json"                       # без пути
+    assert p.scene_name == "etalon"
+    assert p.input_name == "etalon.json"                      # без пути
     assert p.input_sha256 == hashlib.sha256(BOX02.read_bytes()).hexdigest()
     assert p.world.half_size == (352.0, 165.0, 165.0) and p.world.material == "air"
-    assert [(m.id, m.g4_name, m.cpp) for m in p.materials] == [
-        ("air", "G4_AIR", 'scene::Nist("G4_AIR")'),
-        ("iron", "G4_Fe", 'scene::Nist("G4_Fe")'),
+    assert [(m.id, m.g4_name, m.nist) for m in p.materials] == [
+        ("air", "G4_AIR", "G4_AIR"),
+        ("iron", "G4_Fe", "G4_Fe"),
     ]
     (b,) = p.bodies
     assert b.func == "BuildBody_Box" and b.mother == "world"
-    assert b.solid.cpp == 'new G4Box("Box", 10*mm, 20*mm, 35*mm)'
-    assert b.solid.comment == "коробка 20 × 40 × 70 мм (G4Box берёт половины)"
+    # в плане только числа и имена; как это выглядит в C++, решает _solids.j2
+    assert (b.solid.kind, b.solid.name, b.solid.size, b.solid.half) == ("box", "Box", (20, 40, 70), (10, 20, 35))
+    assert not b.rotated
     assert b.title == 'Тело "Box" — «Железная коробка 20×40×70»; материал: Железо, G4_Fe'
     assert b.matrix == IDENTITY and b.translation == (310, -130, 115)
     assert b.cad_volume == 56000
@@ -80,17 +83,17 @@ def test_nested_parent_first_and_probes_only_in_leaves():
     assert (50.0, -30.0, 110.0) in {pr.point for pr in inner.probes}   # а точка — в мире
 
 
-def test_topological_order_keeps_file_order_otherwise(scene, box):
+def test_parents_first_keeps_file_order_otherwise(scene, box):
     s = scene(box("A", (1, 1, 1), (-50, 0, 0)),
               box("B", (2, 2, 2), parent="C"),
               box("C", (10, 10, 10), (0, 0, 0)),
               box("D", (1, 1, 1), (50, 0, 0)))
-    assert [b.id for b in topological_order(s)] == ["A", "C", "B", "D"]
+    assert [b.id for b in s.parents_first()] == ["A", "C", "B", "D"]
 
 
 def test_unsupported_scene_has_no_plan():
-    r = build_plan(load(CONTRACT_V0_1 / "examples" / "02_nested_pipe.json"),
-                   CONTRACT_V0_1 / "examples" / "02_nested_pipe.json")
+    r = Geant4Planner(load(CONTRACT_V0_1 / "examples" / "02_nested_pipe.json"),
+                      CONTRACT_V0_1 / "examples" / "02_nested_pipe.json").build()
     assert r.plan is None
     assert {d.code for d in r.diagnostics if d.level == "ERROR"} == {"E301", "E310"}
 
@@ -113,7 +116,7 @@ GOOD = sorted((CONTRACT_V0_1 / "examples").glob("*.json")) + all_test_scenes()
 
 def _buildable():
     for path in GOOD:
-        if build_plan(load(path), path).plan is not None:
+        if Geant4Planner(load(path), path).build().plan is not None:
             yield pytest.param(path, id=scene_id(path))
 
 

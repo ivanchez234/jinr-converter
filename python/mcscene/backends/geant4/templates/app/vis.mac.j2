@@ -1,0 +1,29 @@
+{#- Визуализация в scene_app. Цвета по материалам считает Geant4Backend.context() в backend.py, здесь только печать. -#}
+{% import "_common.j2" as common with context %}
+{{ common.header("#") }}
+#
+# Визуализация геометрии сцены {{ plan.scene_name }}; выполняется при запуске ./scene_app.
+# Частиц пока нет: /run/beamOn в этом приложении не работает.
+/control/verbose 0
+/run/verbose 0
+/run/initialize
+
+/vis/open
+/vis/viewer/set/autoRefresh false
+/vis/verbose errors
+/vis/drawVolume
+/vis/viewer/set/style surface
+/vis/viewer/set/viewpointThetaPhi 60 30 deg
+/vis/scene/add/axes
+/vis/geometry/set/visibility world 0 false
+
+# Цвета по материалам; тела, внутри которых есть другие, — полупрозрачные.
+{% for c in colours %}
+{% if c.first_of_material %}
+# {{ c.material_id }}: {{ c.material_name|comment }}
+{% endif %}
+/vis/geometry/set/colour {{ c.volume }} 0 {{ c.rgb|map("num")|join(" ") }} {{ c.alpha|num }}
+{% endfor %}
+
+/vis/viewer/set/autoRefresh true
+/vis/verbose warnings

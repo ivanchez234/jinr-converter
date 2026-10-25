@@ -1,0 +1,63 @@
+{#- Геометрия сцены для Geant4: материалы, мир и по функции на каждое тело.
+    Данные готовит Geant4Backend.context() в backend.py; как записывается каждая фигура — в _solids.j2. -#}
+{% import "_common.j2" as common with context %}
+{% import "_solids.j2" as solids %}
+{{ common.header() }}
+
+#include "GeneratedDetectorConstruction.hh"
+
+{% for kind in solid_kinds %}
+#include "{{ solids.HEADERS[kind] }}"
+{% endfor %}
+#include "G4LogicalVolume.hh"
+#include "G4PVPlacement.hh"
+#include "G4SystemOfUnits.hh"
+#include "G4ThreeVector.hh"
+
+#include "g4scene/Materials.hh"
+#include "g4scene/Transform.hh"
+
+G4VPhysicalVolume* GeneratedDetectorConstruction::Construct() {
+  BuildMaterials();
+  ConfigureMaterials();                   // хук для user/
+  G4VPhysicalVolume* world = BuildWorld();
+{% for b in bodies %}
+  {{ b.func }}();
+{% endfor %}
+  PostConstruct(LV("world"));             // хук для user/
+  return world;
+}
+
+void GeneratedDetectorConstruction::BuildMaterials() {
+{% filter align_comments %}
+{% for m in materials %}
+  fReg.AddMaterial({{ m.id|cpp_str }}, scene::Nist({{ m.nist|cpp_str }}));  // {{ m.comment }}
+{% endfor %}
+{% endfilter %}
+}
+
+G4VPhysicalVolume* GeneratedDetectorConstruction::BuildWorld() {
+  // мир: тела занимают [{{ world.extent[0]|map("num")|join(", ") }}]..[{{ world.extent[1]|map("num")|join(", ") }}] мм, запас {{ world.margin_percent|num }} %
+  auto* solid = new G4Box("world", {{ world.half_size|map("mm")|join(", ") }});
+  auto* lv = new G4LogicalVolume(solid, Mat({{ world.material|cpp_str }}), "world");
+  fReg.AddVolume("world", lv);
+  return new G4PVPlacement(nullptr, G4ThreeVector(), lv, "world", nullptr, false, 0);
+}
+{% for b in bodies %}
+
+// {{ b.title|comment }}
+void GeneratedDetectorConstruction::{{ b.func }}() {
+  // {{ solids[b.solid.kind ~ "_note"](b.solid) }}
+  auto* solid = {{ solids[b.solid.kind](b.solid) }};
+  auto* lv = new G4LogicalVolume(solid, Mat({{ b.material_id|cpp_str }}), {{ b.volume|cpp_str }});
+  fReg.AddVolume({{ b.volume|cpp_str }}, lv);
+{% if b.rotated %}
+  // поворот «тело -> родитель», {{ b.rotation_note }}
+  {# indent=30: строки матрицы встают под первую, после «  const scene::Mat3 rotation{{» #}
+  const scene::Mat3 rotation{{ b.matrix|mat3_init(indent=30) }};
+{% endif %}
+  // центр тела в системе родителя «{{ b.mother }}»
+  scene::Place(lv, LV({{ b.mother|cpp_str }}), {{ b.volume|cpp_str }},
+               scene::Transform({{ "rotation" if b.rotated else "scene::kIdentity" }}, {{ b.translation|vec_mm }}));
+}
+{% endfor %}

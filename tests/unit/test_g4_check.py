@@ -4,18 +4,25 @@ import json
 import pytest
 
 from mcscene.backends.base import Action
-from mcscene.backends.geant4.capabilities import SHAPES, check
+from mcscene.backends.geant4.backend import Geant4Backend
+from mcscene.backends.geant4.capabilities import SHAPES
 from mcscene.cli import main, plural
 from mcscene.model import Scene
 from mcscene.paths import CONTRACT_V0_1, FREECAD_FIXTURES, TEST_SCENES
 
-BOX02 = FREECAD_FIXTURES / "02_box_20x40x70" / "scene.json"
+# Рукописный эталон коробки: в нём известны id ("Box") и размеры без поворота.
+# Настоящий экспорт (scene.json рядом) проверяют тест эквивалентности, golden и e2e.sh.
+BOX02 = FREECAD_FIXTURES / "02_box_20x40x70" / "etalon.json"
 HALL = CONTRACT_V0_1 / "examples" / "05_hall_all_types.json"
 
 
 def load(path):
     with open(path, encoding="utf-8") as f:
         return Scene.model_validate(json.load(f))
+
+
+def check(scene):
+    return Geant4Backend().check(scene)
 
 
 def test_stage1_supports_only_box():
@@ -32,9 +39,9 @@ def test_box_scene_is_legal():
 def test_unsupported_shapes_say_which_stage():
     rows, diags = check(load(HALL))
     got = {r.body_id: (r.action, r.note) for r in rows}
-    assert got["pipe"][0] is Action.ERROR and "этап 2" in got["pipe"][1]
-    assert "этап 3" in got["wall_b"][1]
-    assert "этап 4" in got["magnet_yoke"][1]
+    assert got["pipe"][0] is Action.ERROR and "этап 3" in got["pipe"][1]     # номера — по плану v3
+    assert "этап 4" in got["wall_b"][1]
+    assert "этап 5" in got["magnet_yoke"][1]
     assert {d.code for d in diags} == {"E301"}
     assert all(d.target == "geant4" and d.body_id for d in diags)
 
@@ -73,7 +80,9 @@ def test_cli_plan_is_json(capsys):
     out = capsys.readouterr().out
     plan = json.loads(out[out.index("{"):])
     assert plan["world"]["half_size"] == [352.0, 176.0, 126.5]
-    assert plan["bodies"][0]["solid"]["cpp"] == 'new G4Box("box", 10*mm, 20*mm, 35*mm)'
+    # в плане только числа и имена — C++ пишут шаблоны
+    assert plan["bodies"][0]["solid"] == {"kind": "box", "name": "box",
+                                          "size": [20, 40, 70], "half": [10, 20, 35]}
     assert '"matrix": [[0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]]' in out
 
 

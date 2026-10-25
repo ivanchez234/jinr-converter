@@ -14,6 +14,7 @@ FreeCAD (аддон JINRScene) → scene.json + meshes/ (формат jinr-mc-sc
 |---|---|
 | `contracts/scene/v0.1/` | контракт формата: `КОНТРАКТ.md`, `scene.schema.json`, `validate.py`, примеры |
 | `python/mcscene/` | генератор (Python) |
+| `python/mcscene/backends/geant4/templates/` | шаблоны Jinja2: весь текст, который пишет генератор для Geant4 («пакет диалекта») |
 | `cpp/g4scene/` | вспомогательная библиотека для сгенерированного кода (C++) |
 | `inputs/freecad/` | аддон FreeCAD (появится позже) |
 | `tests/` | тесты и образцы сцен |
@@ -34,6 +35,21 @@ tools/e2e.sh                              # все тестовые сцены: 
 
 Подробнее, включая установку Geant4, — в `docs/setup.md`.
 
+## Из Python (так генератор будет вызывать аддон FreeCAD)
+
+```python
+from mcscene import Converter
+
+result = Converter("geant4").generate("scene.json", "out/model")
+if result.ok:
+    print("готово:", result.out_dir)
+else:
+    for d in result.diagnostics:          # ошибки — списком, ничего не печатается само
+        print(d.level, d.code, d.where, d.message)
+```
+
+`mcscene` в терминале — обёртка над тем же `Converter`. Список целей — `mcscene targets`.
+
 ## Кто что делает
 
 - Иван — выходной модуль: `mcscene`, генерация и проверка в Geant4.
@@ -41,4 +57,4 @@ tools/e2e.sh                              # все тестовые сцены: 
 
 ## Статус
 
-Этап 0 (каркас), октябрь 2026. План по этапам — `docs/output-module-step-plan.md`, установка окружения — `docs/setup.md`.
+Этапы 0–1 сделаны: коробки из FreeCAD доходят до Geant4 и проверяются стендом. Этап 2 (октябрь 2026): генерация через шаблоны Jinja2 и переход на классы. План — `docs/output-module-step-plan.md`, почему Jinja2 — `docs/decisions/001-template-engine.md`, установка окружения — `docs/setup.md`.

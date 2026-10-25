@@ -6,12 +6,20 @@ tests/contract/test_equivalence.py и tests/unit/test_models.py.
 
 extra="forbid" повторяет additionalProperties: false из схемы.
 Все длины в мм, углы в градусах, плотность в g/cm3.
+
+Каждая форма знает свою геометрию — габариты (local_bbox) и точки заведомо внутри
+(probe_points). Это общее для всех целей; как записать форму в Geant4 или OpenMC,
+решает цель (backends/<цель>/).
 """
 from __future__ import annotations
 
-from typing import Annotated, Literal, Optional, Union
+import heapq
+from itertools import product
+from typing import Annotated, ClassVar, Literal, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+
+from ..geometry import AABB, Rigid
 
 
 class Strict(BaseModel):
@@ -55,21 +63,57 @@ class Transform(Strict):
 
 
 # --- формы (все центрированы в своей локальной системе, размеры полные) ---
-class Box(Strict):
+class ShapeBase(Strict):
+    """Общее для всех форм: каждая форма знает свою геометрию, без привязки к цели."""
+
+    def local_bbox(self) -> Optional[AABB]:
+        """Габаритная коробка в собственной системе формы. None — неизвестна (меш)."""
+        raise NotImplementedError(type(self).__name__)
+
+    def probe_points(self) -> list[tuple[float, float, float]]:
+        """Точки заведомо внутри формы, в её собственной системе (ими стенд проверяет
+        повороты). Пока известны только у коробки, у остальных фигур появятся на этапе 3."""
+        return []
+
+    def placed_bbox(self) -> Optional[AABB]:
+        """Коробка с учётом собственного transform (он есть у операндов булевых операций)."""
+        box = self.local_bbox()
+        tf = getattr(self, "transform", None)
+        if box is None or tf is None:
+            return box
+        return box.transformed(Rigid.from_transform(tf))
+
+
+class Box(ShapeBase):
     type: Literal["box"]
     size: PosVec3                             # полные размеры, не половинки
     transform: Optional[Transform] = None     # только у операнда булевой операции
 
+    PROBE_FRACTION: ClassVar[float] = 0.4     # ±0.4·size — внутри (половина — 0.5)
 
-class Cylinder(Strict):
+    def local_bbox(self) -> AABB:
+        hx, hy, hz = (s / 2 for s in self.size)
+        return AABB.symmetric(hx, hy, hz)
+
+    def probe_points(self) -> list[tuple[float, float, float]]:
+        """Центр и 8 точек у углов."""
+        hx, hy, hz = (self.PROBE_FRACTION * s for s in self.size)
+        return [(0.0, 0.0, 0.0)] + [(sx * hx, sy * hy, sz * hz)
+                                    for sx, sy, sz in product((-1, 1), repeat=3)]
+
+
+class Cylinder(ShapeBase):
     type: Literal["cylinder"]                 # вдоль локальной z
     radius: PosFloat
     height: PosFloat                          # полная длина
     inner_radius: NonNegFloat = 0.0
     transform: Optional[Transform] = None
 
+    def local_bbox(self) -> AABB:
+        return AABB.symmetric(self.radius, self.radius, self.height / 2)
 
-class Cone(Strict):
+
+class Cone(ShapeBase):
     type: Literal["cone"]                     # вдоль локальной z, bottom при z = -height/2
     radius_bottom: NonNegFloat
     radius_top: NonNegFloat
@@ -78,27 +122,48 @@ class Cone(Strict):
     inner_radius_top: NonNegFloat = 0.0
     transform: Optional[Transform] = None
 
+    def local_bbox(self) -> AABB:
+        r = max(self.radius_bottom, self.radius_top)
+        return AABB.symmetric(r, r, self.height / 2)
 
-class Sphere(Strict):
+
+class Sphere(ShapeBase):
     type: Literal["sphere"]
     radius: PosFloat
     inner_radius: NonNegFloat = 0.0
     transform: Optional[Transform] = None
 
+    def local_bbox(self) -> AABB:
+        return AABB.symmetric(self.radius, self.radius, self.radius)
 
-class Torus(Strict):
+
+class Torus(ShapeBase):
     type: Literal["torus"]                    # ось вращения = локальная z
     major_radius: PosFloat                    # от оси до центра трубки
     minor_radius: PosFloat                    # радиус трубки
     transform: Optional[Transform] = None
 
+    def local_bbox(self) -> AABB:
+        r = self.major_radius + self.minor_radius
+        return AABB.symmetric(r, r, self.minor_radius)
 
-class Boolean(Strict):
+
+class Boolean(ShapeBase):
     type: Literal["boolean"]
     op: Literal["union", "subtract", "intersect"]   # subtract = left минус right
     left: Operand
     right: Operand
     transform: Optional[Transform] = None
+
+    def local_bbox(self) -> Optional[AABB]:
+        left, right = self.left.placed_bbox(), self.right.placed_bbox()
+        if left is None or right is None:
+            return None
+        if self.op == "union":
+            return left.hull(right)
+        if self.op == "subtract":
+            return left                                     # вычитание тело не увеличивает
+        return left.intersection(right) or left             # intersect
 
 
 class Tessellation(Strict):
@@ -106,7 +171,7 @@ class Tessellation(Strict):
     angular_deflection_deg: Optional[PosFloat] = None
 
 
-class Mesh(Strict):
+class Mesh(ShapeBase):
     type: Literal["mesh"]                     # STL в мм, в локальной системе тела
     uri: Annotated[str, StringConstraints(pattern=r"^[^\\:]+\.stl$")]
     encoding: Literal["stl-binary", "stl-ascii"]
@@ -116,6 +181,9 @@ class Mesh(Strict):
                              "BOOLEAN_TOO_COMPLEX", "USER_FORCED"]
     tessellation: Optional[Tessellation] = None
     note: Optional[str] = None
+
+    def local_bbox(self) -> None:
+        return None                               # размер знает только сам STL
 
 
 Operand = Annotated[Union[Box, Cylinder, Cone, Sphere, Torus, Boolean],
@@ -174,6 +242,11 @@ class Body(Strict):
     extensions: Optional[Extensions] = None
     extras: Optional[dict] = None
 
+    def bbox_from_shape(self) -> Optional[AABB]:
+        """Коробка тела в системе родителя, посчитанная по форме и transform тела."""
+        box = self.shape.local_bbox()
+        return None if box is None else box.transformed(Rigid.from_transform(self.transform))
+
 
 class World(Strict):
     material: Id
@@ -206,3 +279,29 @@ class Scene(Strict):
     bodies: Annotated[list[Body], Field(min_length=1)]
     extensions: Optional[Extensions] = None
     extras: Optional[dict] = None
+
+    def parents_first(self) -> list[Body]:
+        """Тела так, чтобы родитель шёл раньше ребёнка, а в остальном — порядок в файле."""
+        index = {b.id: i for i, b in enumerate(self.bodies)}
+        children: dict[str, list[str]] = {}
+        ready: list[int] = []
+        for b in self.bodies:
+            if b.parent is None:
+                heapq.heappush(ready, index[b.id])
+            else:
+                children.setdefault(b.parent, []).append(b.id)
+        order = []
+        while ready:
+            b = self.bodies[heapq.heappop(ready)]
+            order.append(b)
+            for c in children.get(b.id, []):
+                heapq.heappush(ready, index[c])
+        return order
+
+    def world_transforms(self) -> dict[str, Rigid]:
+        """id тела -> преобразование «тело -> мир» через всю цепочку родителей."""
+        out: dict[str, Rigid] = {}
+        for b in self.parents_first():
+            local = Rigid.from_transform(b.transform)
+            out[b.id] = local if b.parent is None else out[b.parent].then_child(local)
+        return out

@@ -1,0 +1,20 @@
+{
+  "target": "geant4",
+  "description": "CMake-проект Geant4: геометрия сцены, стенд проверки check_geometry, окно scene_app с моделью",
+  "generated": [
+    "CMakeLists.txt.j2",
+    "generated/GeneratedDetectorConstruction.hh.j2",
+    "generated/GeneratedDetectorConstruction.cc.j2",
+    "generated/ExpectedChecks.hh.j2",
+    "harness/check_geometry.cc.j2",
+    "app/main.cc.j2",
+    "app/vis.mac.j2",
+    "app/batch.mac.j2"
+  ],
+  "user": [
+    "user/DetectorConstruction.hh.j2"
+  ],
+  "copy": [
+    {"from": "g4scene", "to": "g4scene", "dirs": ["include", "src"], "suffixes": [".hh", ".cc"]}
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "format": "jinr-mc-scene",
+  "format_version": "0.1",
+  "min_reader_version": "0.1",
+  "source": {
+    "tool": "freecad-mc-exporter",
+    "tool_version": "0.1.0",
+    "document": "куб.FCStd"
+  },
+  "units": {
+    "length": "mm",
+    "angle": "deg",
+    "density": "g/cm3"
+  },
+  "extensions_used": [],
+  "extensions_required": [],
+  "world": {
+    "material": "air",
+    "margin_percent": 10
+  },
+  "materials": [
+    {
+      "id": "air",
+      "name": "Воздух",
+      "nist": "G4_AIR"
+    },
+    {
+      "id": "iron",
+      "name": "Железо",
+      "nist": "G4_Fe"
+    }
+  ],
+  "bodies": [
+    {
+      "id": "Body",
+      "name": "Body",
+      "parent": null,
+      "material": "iron",
+      "transform": {
+        "translation": [
+          0.0,
+          0.0,
+          25.0
+        ],
+        "rotation": {
+          "convention": "matrix_active",
+          "matrix": [
+            [
+              0.0,
+              1.0,
+              -0.0
+            ],
+            [
+              0.0,
+              0.0,
+              -1.0
+            ],
+            [
+              -1.0,
+              0.0,
+              -0.0
+            ]
+          ]
+        }
+      },
+      "shape": {
+        "type": "box",
+        "size": [
+          50.0,
+          50.0,
+          50.0
+        ]
+      },
+      "verification": {
+        "cad_volume": 124999.99999999999,
+        "bbox": [
+          [
+            -25.0,
+            -25.0,
+            0.0
+          ],
+          [
+            25.0,
+            25.0,
+            50.0
+          ]
+        ]
+      },
+      "extras": {
+        "freecad": {
+          "name": "Body",
+          "label": "Body",
+          "type_id": "PartDesign::Body"
+        }
+      }
+    }
+  ]
+}

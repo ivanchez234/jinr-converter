@@ -5,7 +5,7 @@
   "source": {
     "tool": "freecad-mc-exporter",
     "tool_version": "0.1.0",
-    "document": "box_20x40x70.FCStd"
+    "document": "BoxSample"
   },
   "units": {
     "length": "mm",
@@ -32,33 +32,33 @@
   ],
   "bodies": [
     {
-      "id": "Box",
+      "id": "Body",
       "name": "Железная коробка 20×40×70",
       "parent": null,
       "material": "iron",
       "transform": {
         "translation": [
-          310,
-          -130,
-          115
+          310.0,
+          -130.0,
+          115.0
         ],
         "rotation": {
           "convention": "matrix_active",
           "matrix": [
             [
-              1,
-              0,
-              0
+              0.0,
+              1.0,
+              -0.0
             ],
             [
-              0,
-              1,
-              0
+              0.0,
+              0.0,
+              -1.0
             ],
             [
-              0,
-              0,
-              1
+              -1.0,
+              0.0,
+              -0.0
             ]
           ]
         }
@@ -66,31 +66,31 @@
       "shape": {
         "type": "box",
         "size": [
-          20,
-          40,
-          70
+          70.0,
+          20.0,
+          40.0
         ]
       },
       "verification": {
-        "cad_volume": 56000,
+        "cad_volume": 56000.0,
         "bbox": [
           [
-            300,
-            -150,
-            80
+            300.0,
+            -150.0,
+            80.0
           ],
           [
-            320,
-            -110,
-            150
+            320.0,
+            -110.0,
+            150.0
           ]
         ]
       },
       "extras": {
         "freecad": {
-          "name": "Box",
+          "name": "Body",
           "label": "Железная коробка 20×40×70",
-          "type_id": "Part::Box"
+          "type_id": "PartDesign::Body"
         }
       }
     }

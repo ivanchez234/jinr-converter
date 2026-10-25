@@ -1,43 +1,33 @@
-"""План генерации для Geant4 (пункты 1.2 и 1.6 плана).
+"""План генерации для Geant4: Geant4Planner превращает сцену в G4Plan.
 
-Принтер C++ не видит ни сырой JSON, ни Scene IR: ему передаётся готовый G4Plan,
-где всё уже посчитано — порядок тел, имена, матрицы, C++ для форм и материалов,
-размер мира, пробные точки. Тогда шаблоны не ломаются, когда меняется схема.
+Шаблоны не видят ни сырой JSON, ни Scene IR: им передаётся готовый G4Plan, где всё
+уже посчитано — порядок тел, имена, матрицы, половины размеров, материалы, размер мира,
+пробные точки. C++ здесь нет: как это записать, решают шаблоны в templates/
+(решение 001). Тогда шаблоны не ломаются, когда меняется схема.
 
 Пробные точки — главная автоматическая проверка поворотов. Для каждого тела без
-детей берутся точки внутри формы в её локальной системе, переводятся в мировые
-координаты через всю цепочку родителей, и стенд в Geant4 проверяет, что в этой
-точке находится именно это тело с этим материалом. Если перепутана ось или матрица,
-у несимметричной коробки угловые точки окажутся снаружи.
+детей берутся точки внутри формы в её локальной системе (Box.probe_points), переводятся
+в мировые координаты через всю цепочку родителей, и стенд в Geant4 проверяет, что в
+этой точке находится именно это тело с этим материалом. Если перепутана ось или
+матрица, у несимметричной коробки угловые точки окажутся снаружи.
 """
 from __future__ import annotations
 
 import hashlib
-import heapq
 import os
 import re
 from dataclasses import dataclass
-from itertools import product
 from pathlib import Path
 
 from ... import __version__
-from ...diagnostics import Diagnostic, has_errors
-from ...passes.materials import plan_materials
-from ...passes.naming import WORLD, assign_names
-from ...passes.rotations import IDENTITY, Mat3, Rigid, Vec3
-from ...passes.world import WorldPlan, plan_world
-from ..base import CheckRow
-from . import cppfmt as f
-from .capabilities import check
-
-PROBE_FRACTION = 0.4     # доля полного размера: ±0.4·size лежит внутри коробки (половина — 0.5)
-BOX_VOLUME_TOL = 1e-6    # объём коробки Geant4 считает точно
-
-
-@dataclass(frozen=True)
-class SolidPlan:
-    cpp: str             # new G4Box("Body", 25*mm, 25*mm, 25*mm)
-    comment: str         # коробка 50 × 50 × 50 мм (G4Box берёт половины)
+from ...diagnostics import Diagnostics
+from ...geometry import IDENTITY, Mat3, Rigid, Rotation, Vec3
+from ...passes import MaterialPass, MaterialPlan, WorldPass, WorldPlan
+from ..base import PlanResult, check_shapes
+from .capabilities import SHAPES
+from .filters import comment, num
+from .naming import WORLD, BodyNames, Geant4Naming
+from .solids import SOLIDS, SolidPlan
 
 
 @dataclass(frozen=True)
@@ -51,7 +41,7 @@ class Probe:
 class MaterialEntry:
     id: str              # id из JSON — ключ в реестре материалов
     g4_name: str         # имя G4Material (для NIST — G4_Fe)
-    cpp: str             # scene::Nist("G4_Fe")
+    nist: str            # имя в базе NIST Geant4: G4_Fe
     comment: str         # Железо
 
 
@@ -71,6 +61,11 @@ class BodyPlan:
     volume_tol: float    # относительный допуск объёма в стенде
     probes: tuple[Probe, ...]
 
+    @property
+    def rotated(self) -> bool:
+        """Есть ли поворот: без него шаблон пишет scene::kIdentity."""
+        return self.matrix != IDENTITY
+
 
 @dataclass(frozen=True)
 class G4Plan:
@@ -85,124 +80,81 @@ class G4Plan:
     unsafe: bool = False                   # сгенерировано с --unsafe-skip-checks (отладка)
 
 
-@dataclass(frozen=True)
-class PlanResult:
-    plan: G4Plan | None                    # None, если есть ошибки
-    rows: list[CheckRow]
-    diagnostics: list[Diagnostic]
+class Geant4Planner:
+    """Сцена -> G4Plan.
+
+    Шаги — проходы с общим входом run(scene, diags): фигуры, мир, имена, материалы.
+    Ошибки всех шагов собираются вместе (человек сразу видит все); если они есть,
+    плана нет.
+    """
+
+    def __init__(self, scene, source: str | os.PathLike, unsafe: bool = False) -> None:
+        self.scene = scene
+        self.source = Path(source)
+        self.unsafe = unsafe
+
+    def build(self) -> PlanResult:
+        diags = Diagnostics()
+        rows, found = check_shapes(self.scene, SHAPES, "geant4")
+        diags.extend(found)
+        world = WorldPass().run(self.scene, diags)
+        names = Geant4Naming().run(self.scene, diags)
+        mats = MaterialPass().run(self.scene, diags)
+        if diags.has_errors or world is None:
+            return PlanResult(None, rows, list(diags))
+
+        materials = self._materials(mats)
+        plan = G4Plan(
+            scene_name=scene_name(self.source),
+            input_name=self.source.name,
+            input_sha256=hashlib.sha256(self.source.read_bytes()).hexdigest(),
+            format_version=self.scene.format_version,
+            generator_version=__version__,
+            world=world,
+            materials=materials,
+            bodies=self._bodies(names, materials),
+            unsafe=self.unsafe,
+        )
+        return PlanResult(plan, rows, list(diags))
+
+    def _materials(self, mats: list[MaterialPlan]) -> tuple[MaterialEntry, ...]:
+        return tuple(MaterialEntry(m.id, m.nist or m.id, m.nist, comment(m.name or m.id)) for m in mats)
+
+    def _bodies(self, names: dict[str, BodyNames],
+                materials: tuple[MaterialEntry, ...]) -> tuple[BodyPlan, ...]:
+        g4_name = {m.id: m.g4_name for m in materials}
+        mat_title = {m.id: m.comment for m in materials}
+        has_children = {b.parent for b in self.scene.bodies if b.parent is not None}
+        to_world = self.scene.world_transforms()
+
+        out = []
+        for b in self.scene.parents_first():
+            n = names[b.id]
+            emitter = SOLIDS[b.shape.type]          # check_shapes пропустил только умеющие фигуры
+            local = Rigid.from_transform(b.transform)
+            probes = () if b.id in has_children else tuple(
+                Probe(_clean(to_world[b.id].apply(p)), n.volume, g4_name[b.material])
+                for p in b.shape.probe_points())
+            out.append(BodyPlan(
+                id=b.id,
+                volume=n.volume,
+                func=n.func,
+                title=_title(b, mat_title[b.material], g4_name[b.material]),
+                solid=emitter.solid(b.shape, n.volume),
+                material_id=b.material,
+                mother=names[b.parent].volume if b.parent is not None else WORLD,
+                matrix=local.rotation.matrix,
+                rotation_note=_rotation_note(b.transform.rotation, local.rotation),
+                translation=_clean(local.t),
+                cad_volume=b.verification.cad_volume,
+                volume_tol=emitter.volume_tol,
+                probes=probes,
+            ))
+        assert len(out) == len(self.scene.bodies)
+        return tuple(out)
 
 
-def build_plan(scene, input_path: str | os.PathLike, unsafe: bool = False) -> PlanResult:
-    diags: list[Diagnostic] = []
-    rows, d = check(scene)
-    diags += d
-    world, d = plan_world(scene)
-    diags += d
-    names, d = assign_names(scene)
-    diags += d
-    mats, d = plan_materials(scene)
-    diags += d
-    if has_errors(diags) or world is None:
-        return PlanResult(None, rows, diags)
-
-    materials = tuple(MaterialEntry(
-        m.id, m.nist or m.id, "scene::Nist(%s)" % f.cpp_str(m.nist), f.comment(m.name or m.id))
-        for m in mats)
-    g4_name = {m.id: m.g4_name for m in materials}
-    mat_title = {m.id: m.comment for m in materials}
-
-    by_id = {b.id: b for b in scene.bodies}
-    has_children = {b.parent for b in scene.bodies if b.parent is not None}
-    to_world = _world_transforms(scene)
-
-    bodies = []
-    for b in topological_order(scene):
-        n = names[b.id]
-        local = Rigid.from_transform(b.transform)
-        probes = () if b.id in has_children else tuple(
-            Probe(_clean(to_world[b.id].apply(p)), n.volume, g4_name[b.material])
-            for p in local_probe_points(b.shape))
-        bodies.append(BodyPlan(
-            id=b.id,
-            volume=n.volume,
-            func=n.func,
-            title=_title(b, mat_title[b.material], g4_name[b.material]),
-            solid=solid_plan(b.shape, n.volume),
-            material_id=b.material,
-            mother=names[b.parent].volume if b.parent is not None else WORLD,
-            matrix=local.r,
-            rotation_note=_rotation_note(b.transform.rotation, local.r),
-            translation=_clean(local.t),
-            cad_volume=b.verification.cad_volume,
-            volume_tol=BOX_VOLUME_TOL,
-            probes=probes,
-        ))
-    assert len(bodies) == len(by_id)
-
-    path = Path(input_path)
-    plan = G4Plan(
-        scene_name=scene_name(path),
-        input_name=path.name,
-        input_sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
-        format_version=scene.format_version,
-        generator_version=__version__,
-        world=world,
-        materials=materials,
-        bodies=tuple(bodies),
-        unsafe=unsafe,
-    )
-    return PlanResult(plan, rows, diags)
-
-
-# --- формы (этап 1: только коробка) ---
-def solid_plan(shape, name: str) -> SolidPlan:
-    if shape.type == "box":
-        hx, hy, hz = (s / 2 for s in shape.size)
-        return SolidPlan(
-            "new G4Box(%s, %s, %s, %s)" % (f.cpp_str(name), f.mm(hx), f.mm(hy), f.mm(hz)),
-            "коробка %s мм (G4Box берёт половины)" % f.sizes(shape.size))
-    raise NotImplementedError(shape.type)      # check() не пропустит сюда другие формы
-
-
-def local_probe_points(shape) -> list[Vec3]:
-    """Точки заведомо внутри формы, в её локальной системе."""
-    if shape.type == "box":
-        hx, hy, hz = (PROBE_FRACTION * s for s in shape.size)
-        return [(0.0, 0.0, 0.0)] + [(sx * hx, sy * hy, sz * hz)
-                                    for sx, sy, sz in product((-1, 1), repeat=3)]
-    return []
-
-
-# --- порядок и цепочки родителей ---
-def topological_order(scene) -> list:
-    """Родитель раньше ребёнка, а в остальном — порядок в файле."""
-    index = {b.id: i for i, b in enumerate(scene.bodies)}
-    children: dict[str, list[str]] = {}
-    ready = []
-    for b in scene.bodies:
-        if b.parent is None:
-            heapq.heappush(ready, index[b.id])
-        else:
-            children.setdefault(b.parent, []).append(b.id)
-    order = []
-    while ready:
-        b = scene.bodies[heapq.heappop(ready)]
-        order.append(b)
-        for c in children.get(b.id, []):
-            heapq.heappush(ready, index[c])
-    return order
-
-
-def _world_transforms(scene) -> dict[str, Rigid]:
-    """id тела -> преобразование «тело -> мир» через всю цепочку родителей."""
-    out: dict[str, Rigid] = {}
-    for b in topological_order(scene):
-        local = Rigid.from_transform(b.transform)
-        out[b.id] = local if b.parent is None else out[b.parent].then_child(local)
-    return out
-
-
-# --- мелочи ---
+# --- мелкие помощники (без состояния) ----------------------------------------------
 def scene_name(path: Path) -> str:
     """kub.json -> kub; tests/fixtures/freecad/02_box/scene.json -> 02_box."""
     stem = path.parent.name if path.stem == "scene" and path.parent.name else path.stem
@@ -213,17 +165,17 @@ def scene_name(path: Path) -> str:
 def _title(b, mat_name: str, g4_name: str) -> str:
     parts = ['Тело "%s"' % b.id]
     if b.name:
-        parts.append("«%s»" % f.comment(b.name))
+        parts.append("«%s»" % comment(b.name))
     mat = mat_name if mat_name == g4_name else "%s, %s" % (mat_name, g4_name)
     return "%s; материал: %s" % (" — ".join(parts), mat)
 
 
-def _rotation_note(rot, m: Mat3) -> str:
-    if m == IDENTITY:
+def _rotation_note(rot, rotation: Rotation) -> str:
+    if rotation.is_identity:
         return ""
     if rot.convention == "euler_xyz_extrinsic_deg":
         return "из JSON: углы X, Y, Z = %s (сначала X, потом Y, потом Z)" % ", ".join(
-            f.num(a) + "°" for a in rot.angles)
+            num(a) + "°" for a in rot.angles)
     return "из JSON: матрица, столбцы — оси тела в системе родителя"
 
 

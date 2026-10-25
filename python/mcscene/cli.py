@@ -1,6 +1,10 @@
-"""Командная строка mcscene.
+"""Командная строка mcscene — тонкая обёртка над Converter (api.py).
 
-Коды выхода: 0 — успех, 1 — ошибки в сцене, 2 — неверный вызов или файл не читается.
+Здесь только разбор аргументов и печать. Вся работа — в Converter: тот же вход
+использует аддон FreeCAD, поэтому терминал и кнопка в аддоне делают одно и то же.
+
+Коды выхода: 0 — успех, 1 — ошибки в сцене, 2 — неверный вызов, файл не читается
+или папка занята.
 """
 from __future__ import annotations
 
@@ -10,9 +14,13 @@ import sys
 from dataclasses import asdict
 
 from . import __version__
-from .diagnostics import print_diagnostics
+from .api import CheckReport, Converter, Status, targets, validate
+from .backends import get_backend
+from .diagnostics import Diagnostic, print_diagnostics
+from .templating import PackError, TemplateError
 
-TARGETS = ["geant4"]
+EXIT = {Status.OK: 0, Status.INVALID: 1, Status.UNSUPPORTED: 1,
+        Status.UNREADABLE: 2, Status.WRITE_FAILED: 2}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -30,17 +38,17 @@ def main(argv: list[str] | None = None) -> int:
                        description="Проверить сцену и показать по строке на тело: "
                                    "умеет ли цель его построить и почему нет.")
     c.add_argument("scene", metavar="scene.json")
-    c.add_argument("-t", "--target", choices=TARGETS, default="geant4", help="цель (по умолчанию geant4)")
+    _target(c)
     c.add_argument("--plan", action="store_true",
                    help="напечатать план генерации (JSON): мир, материалы, тела, пробные точки")
     _common(c)
 
-    g = sub.add_parser("generate", help="сгенерировать C++ проект Geant4",
-                       description="Проверить сцену и записать готовый CMake-проект Geant4: "
-                                   "геометрию, стенд проверки и копию g4scene. "
+    g = sub.add_parser("generate", help="сгенерировать проект для цели (сейчас — Geant4)",
+                       description="Проверить сцену и записать готовый проект цели. Для Geant4 — "
+                                   "CMake-проект: геометрия, стенд проверки и копия g4scene. "
                                    "Компиляция — отдельный шаг (cmake).")
     g.add_argument("scene", metavar="scene.json")
-    g.add_argument("-t", "--target", choices=TARGETS, default="geant4", help="цель (по умолчанию geant4)")
+    _target(g)
     g.add_argument("-o", "--out", required=True, metavar="ПАПКА", help="куда записать проект, например out/kub")
     g.add_argument("--force", action="store_true",
                    help="перезаписать уже сгенерированный проект (user/ и build/ не трогаются)")
@@ -49,14 +57,24 @@ def main(argv: list[str] | None = None) -> int:
                         "контракта (E220, E240, E250, E251) — чтобы убедиться, что стенд это поймает")
     _common(g)
 
+    sub.add_parser("targets", help="какие цели есть", description="Показать цели генерации.")
+
     args = p.parse_args(argv)
-    if args.cmd == "validate":
-        return cmd_validate(args.scenes, strict=args.strict, verbose=args.verbose)
-    if args.cmd == "check":
-        return cmd_check(args.scene, strict=args.strict, verbose=args.verbose, show_plan=args.plan)
-    if args.cmd == "generate":
-        return cmd_generate(args.scene, args.out, force=args.force, strict=args.strict,
-                            verbose=args.verbose, unsafe=args.unsafe_skip_checks)
+    try:
+        if args.cmd == "validate":
+            return cmd_validate(args.scenes, strict=args.strict, verbose=args.verbose)
+        if args.cmd == "check":
+            return cmd_check(args.scene, args.target, strict=args.strict, verbose=args.verbose,
+                             show_plan=args.plan)
+        if args.cmd == "generate":
+            return cmd_generate(args.scene, args.out, args.target, force=args.force, strict=args.strict,
+                                verbose=args.verbose, unsafe=args.unsafe_skip_checks)
+        if args.cmd == "targets":
+            return cmd_targets()
+    except (TemplateError, PackError) as e:
+        # ошибка в пакете шаблонов, а не в сцене: показать шаблон и строку, без traceback
+        print("ОШИБКА В ШАБЛОНАХ: %s" % e)
+        return 2
     return 2
 
 
@@ -66,101 +84,96 @@ def _common(p: argparse.ArgumentParser) -> None:
     p.add_argument("--verbose", action="store_true", help="показывать и справочные сообщения INFO")
 
 
-def cmd_validate(paths: list[str], strict: bool, verbose: bool) -> int:
-    from .io.load import load_and_validate
+def _target(p: argparse.ArgumentParser) -> None:
+    p.add_argument("-t", "--target", choices=targets(), default="geant4",
+                   help="цель (по умолчанию geant4; список — mcscene targets)")
 
+
+# --- команды -------------------------------------------------------------------
+def cmd_validate(paths: list[str], strict: bool, verbose: bool) -> int:
     worst = 0
     for i, path in enumerate(paths):
         if i:
             print()
         print("== %s%s" % (path, " (strict)" if strict else ""))
-        scene, diags = load_and_validate(path, strict=strict)
-        print_diagnostics(diags, verbose=verbose)
-        if scene is not None and verbose:
-            print("Scene IR: тел %d, материалов %d" % (len(scene.bodies), len(scene.materials)))
-        if any(d.code == "E001" for d in diags):
-            worst = max(worst, 2)
-        elif scene is None:
-            worst = max(worst, 1)
+        v = validate(path, strict=strict)
+        print_diagnostics(v.diagnostics, verbose=verbose)
+        if v.ok and verbose:
+            print("Scene IR: тел %d, материалов %d" % (len(v.model.bodies), len(v.model.materials)))
+        worst = max(worst, EXIT[v.status])
     return worst
 
 
-def cmd_check(path: str, strict: bool, verbose: bool, show_plan: bool) -> int:
-    from .backends.geant4.plan import build_plan
-    from .io.load import load_and_validate
-
-    scene, diags = load_and_validate(path, strict=strict)
-    if scene is None:
+def cmd_check(path: str, target: str, strict: bool, verbose: bool, show_plan: bool) -> int:
+    report = Converter(target).check(path, strict=strict)
+    if report.status in (Status.UNREADABLE, Status.INVALID):
         print("== %s: сцена не прошла проверку контракта" % path)
-        print_diagnostics(diags, verbose=verbose)
-        return 2 if any(d.code == "E001" for d in diags) else 1
+        print_diagnostics(report.diagnostics, verbose=verbose)
+        return EXIT[report.status]
 
-    result = build_plan(scene, path)
-    diags = diags + result.diagnostics
-
-    print("== %s -> geant4" % path)
-    _print_check(result, diags, verbose)
-
-    if show_plan and result.plan is not None:
+    print("== %s -> %s" % (path, target))
+    _print_check(report, verbose)
+    if show_plan and report.plan is not None:
         print()
-        print(dump_json(asdict(result.plan)))
-    return 0 if result.plan is not None else 1
+        print(dump_json(asdict(report.plan)))
+    return EXIT[report.status]
 
 
-def cmd_generate(path: str, out: str, force: bool, strict: bool, verbose: bool,
+def cmd_generate(path: str, out: str, target: str, force: bool, strict: bool, verbose: bool,
                  unsafe: bool = False) -> int:
-    from .backends.geant4.generate import GenerateError, write_project
-    from .backends.geant4.plan import build_plan
-    from .io.load import load_and_validate
-
-    scene, diags = load_and_validate(path, strict=strict, unsafe_skip_checks=unsafe)
-    if scene is None:
+    r = Converter(target).generate(path, out, force=force, strict=strict, unsafe_skip_checks=unsafe)
+    if r.status in (Status.UNREADABLE, Status.INVALID):
         print("== %s: сцена не прошла проверку контракта, файлы не записаны" % path)
-        print_diagnostics(diags, verbose=verbose)
-        return 2 if any(d.code == "E001" for d in diags) else 1
+        print_diagnostics(r.diagnostics, verbose=verbose)
+        return EXIT[r.status]
 
-    result = build_plan(scene, path, unsafe=unsafe)
-    diags = diags + result.diagnostics
-    print("== %s -> geant4 -> %s" % (path, out))
+    print("== %s -> %s -> %s" % (path, target, out))
     if unsafe:
         print("ВНИМАНИЕ: --unsafe-skip-checks — геометрические проверки контракта пропущены, "
               "проект только для отладки")
-    if result.plan is None:
-        _print_check(result, diags, verbose)
+    if r.status is Status.UNSUPPORTED:
+        _print_check(r, verbose)
         print("файлы не записаны")
-        return 1
+        return EXIT[r.status]
+    if r.status is Status.WRITE_FAILED:
+        print("ОШИБКА: %s" % r.error)
+        return EXIT[r.status]
 
-    try:
-        written, user_created = write_project(result.plan, diags, out, force=force)
-    except GenerateError as e:
-        print("ОШИБКА: %s" % e)
-        return 2
-
-    shown = [d for d in diags if verbose or d.level != "INFO"]
-    if shown:
-        print_diagnostics(diags, verbose=verbose, summary=False)
-    print("записано файлов: %d (тел: %d)" % (len(written), len(result.plan.bodies)))
-    print("user/DetectorConstruction.hh: %s" % (
-        "создан" if user_created else "уже был, не тронут"))
-    print()
-    print("Дальше:")
-    print("  source $HOME/geant4/install/bin/geant4.sh      # или g4env")
-    print("  cmake -S %s -B %s/build" % (out, out))
-    print("  cmake --build %s/build -j$(nproc)" % out)
-    print("  %s/build/check_geometry                 # стенд проверки" % out)
-    print("  cd %s/build && ./scene_app             # окно Geant4 с моделью" % out)
+    if _shown(r.diagnostics, verbose):
+        print_diagnostics(r.diagnostics, verbose=verbose, summary=False)
+    print("записано файлов: %d (тел: %d)" % (len(r.files), len(r.rows)))
+    for rel in r.user_created:
+        print("%s: создан" % rel)
+    for rel in r.user_kept:
+        print("%s: уже был, не тронут" % rel)
+    if r.next_steps:
+        print()
+        print("Дальше:")
+        for line in r.next_steps:
+            print("  " + line)
     return 0
 
 
-def _print_check(result, diags, verbose: bool) -> None:
-    w_id = max([len("id")] + [len(r.body_id) for r in result.rows])
-    w_type = max([len("тип")] + [len(r.shape_type) for r in result.rows])
+def cmd_targets() -> int:
+    for name in targets():
+        print("%-8s %s" % (name, get_backend(name).description))
+    return 0
+
+
+# --- печать ----------------------------------------------------------------------
+def _shown(diags: list[Diagnostic], verbose: bool) -> bool:
+    return any(verbose or d.level != "INFO" for d in diags)
+
+
+def _print_check(report: CheckReport, verbose: bool) -> None:
+    rows, diags = report.rows, report.diagnostics
+    w_id = max([len("id")] + [len(r.body_id) for r in rows])
+    w_type = max([len("тип")] + [len(r.shape_type) for r in rows])
     print("%-*s  %-*s  %-11s %s" % (w_id, "id", w_type, "тип", "действие", "примечание"))
-    for r in result.rows:
+    for r in rows:
         print(("%-*s  %-*s  %-11s %s" % (w_id, r.body_id, w_type, r.shape_type, r.action, r.note)).rstrip())
 
-    shown = [d for d in diags if verbose or d.level != "INFO"]
-    if shown:
+    if _shown(diags, verbose):
         print()
         print_diagnostics(diags, verbose=verbose, summary=False)
 
@@ -168,10 +181,10 @@ def _print_check(result, diags, verbose: bool) -> None:
     nw = sum(1 for d in diags if d.level == "WARN")
     print()
     print("итог: %d %s, %d %s, %d %s -> %s" % (
-        len(result.rows), plural(len(result.rows), "тело", "тела", "тел"),
+        len(rows), plural(len(rows), "тело", "тела", "тел"),
         ne, plural(ne, "ошибка", "ошибки", "ошибок"),
         nw, plural(nw, "предупреждение", "предупреждения", "предупреждений"),
-        "можно генерировать" if result.plan is not None else "генерировать нельзя"))
+        "можно генерировать" if report.plan is not None else "генерировать нельзя"))
 
 
 def dump_json(obj, indent: int = 0) -> str:

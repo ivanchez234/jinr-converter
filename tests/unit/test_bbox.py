@@ -1,11 +1,10 @@
-"""Габаритные коробки форм: формулы против того, что посчитал FreeCAD."""
+"""Габаритные коробки (AABB): каждая форма знает свою; формулы против того, что посчитал FreeCAD."""
 import json
 
 import pytest
 
 from mcscene.model import Scene
-from mcscene.passes.bbox import body_bbox_from_shape, local_bbox
-from mcscene.passes.rotations import is_axis_permutation, to_matrix
+from mcscene.geometry import AABB, Rigid, Rotation
 from mcscene.paths import CONTRACT_V0_1, TEST_SCENES, scene_id
 
 ID = {"convention": "identity"}
@@ -37,7 +36,7 @@ def shape(d):
      ((-110, -110, -10), (110, 110, 10))),
 ], ids=["box", "cylinder", "tube", "sharp-cone", "cone-wide-top", "sphere", "torus"])
 def test_local_bbox_of_primitives(d, expected):
-    assert local_bbox(shape(d)) == expected
+    assert shape(d).local_bbox().as_tuple() == expected
 
 
 def _box_at(size, t):
@@ -49,21 +48,21 @@ def test_boolean_union_is_hull_of_operands():
     s = shape({"type": "boolean", "op": "union",
                "left": {"type": "box", "size": [10, 10, 10]},
                "right": _box_at([10, 10, 10], [8, 0, 0])})
-    assert local_bbox(s) == ((-5, -5, -5), (13, 5, 5))
+    assert s.local_bbox().as_tuple() == ((-5, -5, -5), (13, 5, 5))
 
 
 def test_boolean_subtract_is_left_operand():
     s = shape({"type": "boolean", "op": "subtract",
                "left": {"type": "box", "size": [10, 10, 10]},
                "right": _box_at([4, 4, 40], [0, 0, 0])})
-    assert local_bbox(s) == ((-5, -5, -5), (5, 5, 5))
+    assert s.local_bbox().as_tuple() == ((-5, -5, -5), (5, 5, 5))
 
 
 def test_boolean_intersect_is_overlap_of_operands():
     s = shape({"type": "boolean", "op": "intersect",
                "left": {"type": "box", "size": [10, 10, 10]},
                "right": _box_at([10, 10, 10], [6, 0, 0])})
-    assert local_bbox(s) == ((1, -5, -5), (5, 5, 5))
+    assert s.local_bbox().as_tuple() == ((1, -5, -5), (5, 5, 5))
 
 
 def test_rotated_operand():
@@ -74,13 +73,13 @@ def test_rotated_operand():
                          "transform": {"translation": [0, 0, 0],
                                        "rotation": {"convention": "euler_xyz_extrinsic_deg",
                                                     "angles": [0, 90, 0]}}}})
-    assert local_bbox(s) == ((-20, -1, -1), (20, 1, 1))
+    assert s.local_bbox().as_tuple() == ((-20, -1, -1), (20, 1, 1))
 
 
 def test_mesh_has_no_bbox_without_stl():
     s = shape({"type": "mesh", "uri": "meshes/x.stl", "encoding": "stl-binary",
                "sha256": "0" * 64, "n_facets": 4, "fallback_reason": "USER_FORCED"})
-    assert local_bbox(s) is None
+    assert s.local_bbox() is None
 
 
 # --- формулы против verification.bbox в примерах контракта и ручных сценах ---
@@ -94,15 +93,34 @@ def _cases():
         for b in scene.bodies:
             if b.verification.bbox is None or b.shape.type == "mesh":
                 continue
-            if not is_axis_permutation(to_matrix(b.transform.rotation)):
+            if not Rotation.from_contract(b.transform.rotation).is_axis_permutation:
                 continue      # у наклонных круглых фигур коробка по углам шире настоящей
             yield pytest.param(b, id="%s:%s" % (scene_id(path), b.id))
 
 
 @pytest.mark.parametrize("body", list(_cases()))
 def test_bbox_from_shape_matches_freecad(body):
-    ours = body_bbox_from_shape(body)
+    ours = body.bbox_from_shape().as_tuple()
     ref = body.verification.bbox
     for i in range(2):
         for k in range(3):
             assert abs(ours[i][k] - ref[i][k]) < 1e-3, (ours, ref)
+
+
+# --- сам объект AABB ------------------------------------------------------------------
+def test_aabb_hull_and_intersection():
+    a, b = AABB((0, 0, 0), (2, 2, 2)), AABB((1, -1, 1), (3, 1, 4))
+    assert a.hull(b) == AABB((0, -1, 0), (3, 2, 4))
+    assert a.intersection(b) == AABB((1, 0, 1), (2, 1, 2))
+    assert a.intersection(AABB((5, 5, 5), (6, 6, 6))) is None
+
+
+def test_aabb_transformed_by_rotation_and_shift():
+    box = AABB.symmetric(10, 20, 35)                          # коробка 20×40×70
+    moved = box.transformed(Rigid(Rotation.euler_xyz_deg(0, 0, 90), (300, -150, 80)))
+    assert moved.as_tuple() == ((280, -160, 45), (320, -140, 115))   # x и y поменялись местами
+    assert len(box.corners()) == 8
+
+
+def test_aabb_from_json_pair():
+    assert AABB.of([[300, -150, 80], [320, -110, 150]]) == AABB((300, -150, 80), (320, -110, 150))
