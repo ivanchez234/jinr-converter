@@ -1,0 +1,35 @@
+{
+  "format": "jinr-mc-scene",
+  "format_version": "0.1",
+  "source": {"tool": "hand-written", "document": "tests/scenes/box_rot30x_45z_matrix.json"},
+  "units": {"length": "mm", "angle": "deg", "density": "g/cm3"},
+  "world": {"material": "air", "margin_percent": 10},
+  "materials": [
+    {"id": "air", "name": "Воздух", "nist": "G4_AIR"},
+    {"id": "iron", "name": "Железо", "nist": "G4_Fe"}
+  ],
+  "bodies": [
+    {
+      "id": "box",
+      "name": "Коробка 20×40×70, тот же поворот 30° вокруг x, затем 45° вокруг z (матрицей)",
+      "parent": null,
+      "material": "iron",
+      "transform": {
+        "translation": [150, -60, 40],
+        "rotation": {
+          "convention": "matrix_active",
+          "matrix": [
+            [0.7071067811865476, -0.6123724356957945, 0.3535533905932737],
+            [0.7071067811865475, 0.6123724356957946, -0.35355339059327373],
+            [0.0, 0.49999999999999994, 0.8660254037844387]
+          ]
+        }
+      },
+      "shape": {"type": "box", "size": [20, 40, 70]},
+      "verification": {
+        "cad_volume": 56000,
+        "bbox": [[118.307115, -91.692885, -0.310889], [181.692885, -28.307115, 80.310889]]
+      }
+    }
+  ]
+}

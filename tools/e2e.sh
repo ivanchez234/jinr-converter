@@ -7,11 +7,14 @@
 #   tools/e2e.sh                 # все сцены + проверка, что стенд ловит ошибки
 #   tools/e2e.sh tests/scenes/kub.json      # только указанные
 #
-# Две части:
+# Три части:
 #   1. Хорошие сцены (tests/scenes, tests/fixtures/freecad): всё должно пройти.
 #   2. Отладочные сцены с нарочными ошибками (tests/debug, только при запуске без
 #      аргументов): генерируются с --unsafe-skip-checks, и стенд ОБЯЗАН упасть.
 #      Если стенд сказал OK на сцене с перекрытием — это FAIL: стенд ничего не ловит.
+#   3. Сломанная матрица (только при запуске без аргументов): tools/break_matrix.sh
+#      транспонирует матрицу в копии g4scene, и на ловушке поворотов и на коробке
+#      30°/45° стенд ОБЯЗАН упасть. Проекты — в build/break/, build/e2e/ не трогается.
 #
 # Geant4 подключается сам: если geant4-config не найден, берётся
 # $G4_SETUP (по умолчанию $HOME/geant4/install/bin/geant4.sh).
@@ -38,9 +41,11 @@ fi
 if [ $# -gt 0 ]; then
   scenes=("$@")
   debug_scenes=()
+  break_scenes=()
 else
   scenes=(tests/scenes/*.json tests/fixtures/freecad/*/scene.json)
   debug_scenes=(tests/debug/*.json)
+  break_scenes=(tests/scenes/rotation_trap.json tests/scenes/box_rot30x_45z.json)
 fi
 
 mkdir -p build/e2e
@@ -106,6 +111,23 @@ if [ ${#debug_scenes[@]} -gt 0 ] && [ -f "${debug_scenes[0]}" ]; then
     fi
     echo "OK    стенд поймал ошибку"
     ok=$((ok + 1))
+  done
+fi
+
+if [ ${#break_scenes[@]} -gt 0 ]; then
+  echo
+  echo "Сломанная матрица в g4scene (стенд должен упасть):"
+  for scene in "${break_scenes[@]}"; do
+    name="break_$(scene_name "$scene")"
+    log="build/e2e/$name.log"
+    printf '%-28s ' "$name"
+    rc=0
+    tools/break_matrix.sh "$scene" >"$log" 2>&1 || rc=$?
+    case "$rc" in
+      0) echo "OK    стенд поймал перепутанную матрицу"; ok=$((ok + 1)) ;;
+      1) echo "FAIL  стенд НЕ поймал перепутанную матрицу (см. $log)"; failed+=("$name") ;;
+      *) echo "FAIL  до стенда не дошло (см. $log)"; failed+=("$name") ;;
+    esac
   done
 fi
 

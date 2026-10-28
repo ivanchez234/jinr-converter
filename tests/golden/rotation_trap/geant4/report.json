@@ -1,0 +1,94 @@
+{
+  "generator": {
+    "name": "mcscene",
+    "version": "0.1.0"
+  },
+  "target": "geant4",
+  "flags": {
+    "unsafe_skip_checks": false
+  },
+  "input": {
+    "file": "rotation_trap.json",
+    "sha256": "a4f865fca53687092de0146ae78b09654b1480426de2dbfac33f1c147bfe6ee1",
+    "format_version": "0.1"
+  },
+  "world": {
+    "material": "air",
+    "half_size_mm": [
+      165.0,
+      220.0,
+      110.0
+    ],
+    "margin_percent": 10.0
+  },
+  "materials": [
+    {
+      "id": "air",
+      "geant4": "G4_AIR"
+    },
+    {
+      "id": "concrete",
+      "geant4": "G4_CONCRETE"
+    },
+    {
+      "id": "iron",
+      "geant4": "G4_Fe"
+    },
+    {
+      "id": "lead",
+      "geant4": "G4_Pb"
+    }
+  ],
+  "bodies": [
+    {
+      "id": "A",
+      "volume": "A",
+      "mother": "world",
+      "material": "concrete",
+      "cad_volume_mm3": 6000000.0,
+      "probes": 0
+    },
+    {
+      "id": "B",
+      "volume": "B",
+      "mother": "A",
+      "material": "iron",
+      "cad_volume_mm3": 144000.0,
+      "probes": 0
+    },
+    {
+      "id": "M",
+      "volume": "M",
+      "mother": "B",
+      "material": "lead",
+      "cad_volume_mm3": 1000.0,
+      "probes": 9
+    }
+  ],
+  "diagnostics": [
+    {
+      "level": "INFO",
+      "code": "I202",
+      "where": "materials/air",
+      "message": "только NIST-имя: для Geant4 хватит, для FLUKA/MCNP генератор возьмёт состав из базы NIST"
+    },
+    {
+      "level": "INFO",
+      "code": "I202",
+      "where": "materials/concrete",
+      "message": "только NIST-имя: для Geant4 хватит, для FLUKA/MCNP генератор возьмёт состав из базы NIST"
+    },
+    {
+      "level": "INFO",
+      "code": "I202",
+      "where": "materials/iron",
+      "message": "только NIST-имя: для Geant4 хватит, для FLUKA/MCNP генератор возьмёт состав из базы NIST"
+    },
+    {
+      "level": "INFO",
+      "code": "I202",
+      "where": "materials/lead",
+      "message": "только NIST-имя: для Geant4 хватит, для FLUKA/MCNP генератор возьмёт состав из базы NIST"
+    }
+  ]
+}

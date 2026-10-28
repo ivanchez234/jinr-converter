@@ -1,0 +1,58 @@
+{
+  "generator": {
+    "name": "mcscene",
+    "version": "0.1.0"
+  },
+  "target": "geant4",
+  "flags": {
+    "unsafe_skip_checks": false
+  },
+  "input": {
+    "file": "box_rot30x_45z.json",
+    "sha256": "6efd5dc2517690a77d20fd1ba5749c3ebea05dc03f66e0653772ad0e193d4023",
+    "format_version": "0.1"
+  },
+  "world": {
+    "material": "air",
+    "half_size_mm": [
+      199.8621735,
+      100.8621735,
+      88.3419779
+    ],
+    "margin_percent": 10.0
+  },
+  "materials": [
+    {
+      "id": "air",
+      "geant4": "G4_AIR"
+    },
+    {
+      "id": "iron",
+      "geant4": "G4_Fe"
+    }
+  ],
+  "bodies": [
+    {
+      "id": "box",
+      "volume": "box",
+      "mother": "world",
+      "material": "iron",
+      "cad_volume_mm3": 56000.0,
+      "probes": 9
+    }
+  ],
+  "diagnostics": [
+    {
+      "level": "INFO",
+      "code": "I202",
+      "where": "materials/air",
+      "message": "только NIST-имя: для Geant4 хватит, для FLUKA/MCNP генератор возьмёт состав из базы NIST"
+    },
+    {
+      "level": "INFO",
+      "code": "I202",
+      "where": "materials/iron",
+      "message": "только NIST-имя: для Geant4 хватит, для FLUKA/MCNP генератор возьмёт состав из базы NIST"
+    }
+  ]
+}

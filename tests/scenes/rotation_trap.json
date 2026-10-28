@@ -1,0 +1,60 @@
+{
+  "format": "jinr-mc-scene",
+  "format_version": "0.1",
+  "source": {"tool": "hand-written", "document": "tests/scenes/rotation_trap.json"},
+  "units": {"length": "mm", "angle": "deg", "density": "g/cm3"},
+  "world": {"material": "air", "margin_percent": 10},
+  "materials": [
+    {"id": "air", "name": "Воздух", "nist": "G4_AIR"},
+    {"id": "concrete", "name": "Бетон", "nist": "G4_CONCRETE"},
+    {"id": "iron", "name": "Железо", "nist": "G4_Fe"},
+    {"id": "lead", "name": "Свинец", "nist": "G4_Pb"}
+  ],
+  "bodies": [
+    {
+      "id": "A",
+      "name": "Ловушка: бетонный блок 300×200×100, поворот 90° вокруг x, затем 90° вокруг z",
+      "parent": null,
+      "material": "concrete",
+      "transform": {
+        "translation": [100, 50, 0],
+        "rotation": {"convention": "euler_xyz_extrinsic_deg", "angles": [90, 0, 90]}
+      },
+      "shape": {"type": "box", "size": [300, 200, 100]},
+      "verification": {
+        "cad_volume": 6000000,
+        "bbox": [[50, -100, -100], [150, 200, 100]]
+      }
+    },
+    {
+      "id": "B",
+      "name": "Ловушка: железная вставка 80×60×30 в A, поворот 90° вокруг y",
+      "parent": "A",
+      "material": "iron",
+      "transform": {
+        "translation": [60, 0, 5],
+        "rotation": {"convention": "euler_xyz_extrinsic_deg", "angles": [0, 90, 0]}
+      },
+      "shape": {"type": "box", "size": [80, 60, 30]},
+      "verification": {
+        "cad_volume": 144000,
+        "bbox": [[45, -30, -35], [75, 30, 45]]
+      }
+    },
+    {
+      "id": "M",
+      "name": "Ловушка: свинцовый маркер 10×10×10 в B, без поворота",
+      "parent": "B",
+      "material": "lead",
+      "transform": {
+        "translation": [30, 15, 0],
+        "rotation": {"convention": "identity"}
+      },
+      "shape": {"type": "box", "size": [10, 10, 10]},
+      "verification": {
+        "cad_volume": 1000,
+        "bbox": [[25, 10, -5], [35, 20, 5]]
+      }
+    }
+  ]
+}
