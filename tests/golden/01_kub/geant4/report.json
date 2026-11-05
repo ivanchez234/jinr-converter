@@ -4,6 +4,7 @@
     "version": "0.1.0"
   },
   "target": "geant4",
+  "namespace": "scene_01_kub",
   "flags": {
     "unsafe_skip_checks": false
   },

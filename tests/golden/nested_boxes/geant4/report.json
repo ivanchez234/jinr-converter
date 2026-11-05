@@ -4,6 +4,7 @@
     "version": "0.1.0"
   },
   "target": "geant4",
+  "namespace": "nested_boxes",
   "flags": {
     "unsafe_skip_checks": false
   },
@@ -42,7 +43,7 @@
       "mother": "world",
       "material": "concrete",
       "cad_volume_mm3": 24000000.0,
-      "probes": 0
+      "probes": 15
     },
     {
       "id": "inner",

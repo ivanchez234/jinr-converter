@@ -1,0 +1,77 @@
+{
+  "generator": {
+    "name": "mcscene",
+    "version": "0.1.0"
+  },
+  "target": "geant4",
+  "namespace": "torus_ball",
+  "flags": {
+    "unsafe_skip_checks": false
+  },
+  "input": {
+    "file": "torus_ball.json",
+    "sha256": "5b8f8c2bae9cc66f190a9e46e95894508d249ac66783739b13a09617f43be7cf",
+    "format_version": "0.1"
+  },
+  "world": {
+    "material": "air",
+    "half_size_mm": [
+      130.9626362,
+      128.262794,
+      141.9626362
+    ],
+    "margin_percent": 10.0
+  },
+  "materials": [
+    {
+      "id": "air",
+      "geant4": "G4_AIR"
+    },
+    {
+      "id": "copper",
+      "geant4": "G4_Cu"
+    },
+    {
+      "id": "lead",
+      "geant4": "G4_Pb"
+    }
+  ],
+  "bodies": [
+    {
+      "id": "ring",
+      "volume": "ring",
+      "mother": "world",
+      "material": "copper",
+      "cad_volume_mm3": 789568.3520871487,
+      "probes": 8
+    },
+    {
+      "id": "ball",
+      "volume": "ball",
+      "mother": "world",
+      "material": "lead",
+      "cad_volume_mm3": 523598.7755982988,
+      "probes": 7
+    }
+  ],
+  "diagnostics": [
+    {
+      "level": "INFO",
+      "code": "I202",
+      "where": "materials/air",
+      "message": "только NIST-имя: для Geant4 хватит, для FLUKA/MCNP генератор возьмёт состав из базы NIST"
+    },
+    {
+      "level": "INFO",
+      "code": "I202",
+      "where": "materials/copper",
+      "message": "только NIST-имя: для Geant4 хватит, для FLUKA/MCNP генератор возьмёт состав из базы NIST"
+    },
+    {
+      "level": "INFO",
+      "code": "I202",
+      "where": "materials/lead",
+      "message": "только NIST-имя: для Geant4 хватит, для FLUKA/MCNP генератор возьмёт состав из базы NIST"
+    }
+  ]
+}

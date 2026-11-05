@@ -12,6 +12,8 @@
 #include "g4scene/Materials.hh"
 #include "g4scene/Transform.hh"
 
+namespace rotation_trap {
+
 G4VPhysicalVolume* GeneratedDetectorConstruction::Construct() {
   BuildMaterials();
   ConfigureMaterials();                   // хук для user/
@@ -24,10 +26,10 @@ G4VPhysicalVolume* GeneratedDetectorConstruction::Construct() {
 }
 
 void GeneratedDetectorConstruction::BuildMaterials() {
-  fReg.AddMaterial("air", scene::Nist("G4_AIR"));            // Воздух
-  fReg.AddMaterial("concrete", scene::Nist("G4_CONCRETE"));  // Бетон
-  fReg.AddMaterial("iron", scene::Nist("G4_Fe"));            // Железо
-  fReg.AddMaterial("lead", scene::Nist("G4_Pb"));            // Свинец
+  fReg.AddMaterial("air", g4scene::Nist("G4_AIR"));            // Воздух
+  fReg.AddMaterial("concrete", g4scene::Nist("G4_CONCRETE"));  // Бетон
+  fReg.AddMaterial("iron", g4scene::Nist("G4_Fe"));            // Железо
+  fReg.AddMaterial("lead", g4scene::Nist("G4_Pb"));            // Свинец
 }
 
 G4VPhysicalVolume* GeneratedDetectorConstruction::BuildWorld() {
@@ -45,12 +47,13 @@ void GeneratedDetectorConstruction::BuildBody_A() {
   auto* lv = new G4LogicalVolume(solid, Mat("concrete"), "A");
   fReg.AddVolume("A", lv);
   // поворот «тело -> родитель», из JSON: углы X, Y, Z = 90°, 0°, 90° (сначала X, потом Y, потом Z)
-  const scene::Mat3 rotation{{{0, 0, 1},
-                              {1, 0, 0},
-                              {0, 1, 0}}};
+  // оси тела в системе родителя (столбцы матрицы): x -> +y, y -> +z, z -> +x
+  const g4scene::Mat3 rotation = g4scene::Rows({0, 0, 1},
+                                               {1, 0, 0},
+                                               {0, 1, 0});
   // центр тела в системе родителя «world»
-  scene::Place(lv, LV("world"), "A",
-               scene::Transform(rotation, G4ThreeVector(100*mm, 50*mm, 0*mm)));
+  g4scene::Place(lv, LV("world"), "A",
+                 g4scene::Transform(rotation, G4ThreeVector(100*mm, 50*mm, 0*mm)));
 }
 
 // Тело "B" — «Ловушка: железная вставка 80×60×30 в A, поворот 90° вокруг y»; материал: Железо, G4_Fe
@@ -60,12 +63,13 @@ void GeneratedDetectorConstruction::BuildBody_B() {
   auto* lv = new G4LogicalVolume(solid, Mat("iron"), "B");
   fReg.AddVolume("B", lv);
   // поворот «тело -> родитель», из JSON: углы X, Y, Z = 0°, 90°, 0° (сначала X, потом Y, потом Z)
-  const scene::Mat3 rotation{{{0, 0, 1},
-                              {0, 1, 0},
-                              {-1, 0, 0}}};
+  // оси тела в системе родителя (столбцы матрицы): x -> -z, y -> +y, z -> +x
+  const g4scene::Mat3 rotation = g4scene::Rows({ 0, 0, 1},
+                                               { 0, 1, 0},
+                                               {-1, 0, 0});
   // центр тела в системе родителя «A»
-  scene::Place(lv, LV("A"), "B",
-               scene::Transform(rotation, G4ThreeVector(60*mm, 0*mm, 5*mm)));
+  g4scene::Place(lv, LV("A"), "B",
+                 g4scene::Transform(rotation, G4ThreeVector(60*mm, 0*mm, 5*mm)));
 }
 
 // Тело "M" — «Ловушка: свинцовый маркер 10×10×10 в B, без поворота»; материал: Свинец, G4_Pb
@@ -75,6 +79,8 @@ void GeneratedDetectorConstruction::BuildBody_M() {
   auto* lv = new G4LogicalVolume(solid, Mat("lead"), "M");
   fReg.AddVolume("M", lv);
   // центр тела в системе родителя «B»
-  scene::Place(lv, LV("B"), "M",
-               scene::Transform(scene::kIdentity, G4ThreeVector(30*mm, 15*mm, 0*mm)));
+  g4scene::Place(lv, LV("B"), "M",
+                 g4scene::Transform(g4scene::kIdentity, G4ThreeVector(30*mm, 15*mm, 0*mm)));
 }
+
+}  // namespace rotation_trap

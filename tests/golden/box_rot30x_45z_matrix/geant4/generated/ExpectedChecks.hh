@@ -29,7 +29,7 @@ inline const std::vector<Volume> kVolumes = {
 };
 
 inline const std::vector<Probe> kProbes = {
-    // box: центр и точки у углов
+    // box: точки заведомо внутри тела
     {150, -60, 40, "box", "G4_Fe"},
     {144.241609785, -65.555318284, 7.751288694, "box", "G4_Fe"},
     {164.040599658, -85.354308157, 56.248711306, "box", "G4_Fe"},

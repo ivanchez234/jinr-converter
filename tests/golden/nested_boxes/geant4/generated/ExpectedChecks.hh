@@ -30,7 +30,23 @@ inline const std::vector<Volume> kVolumes = {
 };
 
 inline const std::vector<Probe> kProbes = {
-    // inner: центр и точки у углов
+    // outer: точки заведомо внутри тела
+    {0, 0, 100, "outer", "G4_CONCRETE"},
+    {-160, -120, 20, "outer", "G4_CONCRETE"},
+    {-160, -120, 180, "outer", "G4_CONCRETE"},
+    {-160, 120, 20, "outer", "G4_CONCRETE"},
+    {-160, 120, 180, "outer", "G4_CONCRETE"},
+    {160, -120, 20, "outer", "G4_CONCRETE"},
+    {160, -120, 180, "outer", "G4_CONCRETE"},
+    {160, 120, 20, "outer", "G4_CONCRETE"},
+    {160, 120, 180, "outer", "G4_CONCRETE"},
+    {100, 0, 100, "outer", "G4_CONCRETE"},
+    {-100, 0, 100, "outer", "G4_CONCRETE"},
+    {0, 75, 100, "outer", "G4_CONCRETE"},
+    {0, -102.5, 100, "outer", "G4_CONCRETE"},
+    {0, 0, 150, "outer", "G4_CONCRETE"},
+    {0, 0, 50, "outer", "G4_CONCRETE"},
+    // inner: точки заведомо внутри тела
     {50, -30, 110, "inner", "G4_Fe"},
     {10, -50, 102, "inner", "G4_Fe"},
     {10, -50, 118, "inner", "G4_Fe"},

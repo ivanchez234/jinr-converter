@@ -12,6 +12,8 @@
 #include "g4scene/Materials.hh"
 #include "g4scene/Transform.hh"
 
+namespace box_in_world {
+
 G4VPhysicalVolume* GeneratedDetectorConstruction::Construct() {
   BuildMaterials();
   ConfigureMaterials();                   // хук для user/
@@ -22,8 +24,8 @@ G4VPhysicalVolume* GeneratedDetectorConstruction::Construct() {
 }
 
 void GeneratedDetectorConstruction::BuildMaterials() {
-  fReg.AddMaterial("air", scene::Nist("G4_AIR"));  // Воздух
-  fReg.AddMaterial("iron", scene::Nist("G4_Fe"));  // Железо
+  fReg.AddMaterial("air", g4scene::Nist("G4_AIR"));  // Воздух
+  fReg.AddMaterial("iron", g4scene::Nist("G4_Fe"));  // Железо
 }
 
 G4VPhysicalVolume* GeneratedDetectorConstruction::BuildWorld() {
@@ -41,6 +43,8 @@ void GeneratedDetectorConstruction::BuildBody_box() {
   auto* lv = new G4LogicalVolume(solid, Mat("iron"), "box");
   fReg.AddVolume("box", lv);
   // центр тела в системе родителя «world»
-  scene::Place(lv, LV("world"), "box",
-               scene::Transform(scene::kIdentity, G4ThreeVector(10*mm, 20*mm, 30*mm)));
+  g4scene::Place(lv, LV("world"), "box",
+                 g4scene::Transform(g4scene::kIdentity, G4ThreeVector(10*mm, 20*mm, 30*mm)));
 }
+
+}  // namespace box_in_world

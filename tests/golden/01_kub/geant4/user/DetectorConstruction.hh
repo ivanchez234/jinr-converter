@@ -5,7 +5,36 @@
 
 #include "GeneratedDetectorConstruction.hh"
 
+// Пример: объём-детектор (чувствительный объём), в котором Geant4 считает дозу.
+// Чтобы включить, поставьте 1 вместо 0 в строке #define ниже и пересоберите.
+#ifndef MCSCENE_EXAMPLE_DETECTOR
+#define MCSCENE_EXAMPLE_DETECTOR 0
+#endif
+
+#if MCSCENE_EXAMPLE_DETECTOR
+#include "G4MultiFunctionalDetector.hh"
+#include "G4PSDoseDeposit.hh"
+#include "G4SDManager.hh"
+#endif
+
+namespace scene_01_kub {   // как в generated/: классы сцены — в пространстве имён сцены
+
 class DetectorConstruction : public GeneratedDetectorConstruction {
+ public:
+#if MCSCENE_EXAMPLE_DETECTOR
+  // Чувствительные объёмы. Geant4 вызывает этот метод после Construct()
+  // (в многопоточном режиме — в каждом рабочем потоке). Образец — пример B3 из Geant4.
+  void ConstructSDandField() override {
+    // Тело "Body" — «Body»; материал: Железо, G4_Fe
+    // становится детектором: G4PSDoseDeposit суммирует дозу (энерговыделение / масса) за событие.
+    // Чтобы получить числа, нужен свой RunAction, как в примере B3a (G4THitsMap, G4Accumulable).
+    auto* detector = new G4MultiFunctionalDetector("dose_Body");
+    G4SDManager::GetSDMpointer()->AddNewDetector(detector);
+    detector->RegisterPrimitive(new G4PSDoseDeposit("dose"));
+    SetSensitiveDetector(LV("Body"), detector);
+  }
+#endif
+
  protected:
   // Вызывается сразу после того, как построены материалы сцены:
   // можно поменять свойства материалов или добавить свои через fReg.AddMaterial.
@@ -15,3 +44,5 @@ class DetectorConstruction : public GeneratedDetectorConstruction {
   // по id из scene.json: LV("Body"), материалы — Mat("iron").
   void PostConstruct(G4LogicalVolume* /*world*/) override {}
 };
+
+}  // namespace scene_01_kub

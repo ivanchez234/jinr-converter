@@ -12,6 +12,8 @@
 #include "g4scene/Materials.hh"
 #include "g4scene/Transform.hh"
 
+namespace box_rot30x_45z {
+
 G4VPhysicalVolume* GeneratedDetectorConstruction::Construct() {
   BuildMaterials();
   ConfigureMaterials();                   // хук для user/
@@ -22,8 +24,8 @@ G4VPhysicalVolume* GeneratedDetectorConstruction::Construct() {
 }
 
 void GeneratedDetectorConstruction::BuildMaterials() {
-  fReg.AddMaterial("air", scene::Nist("G4_AIR"));  // Воздух
-  fReg.AddMaterial("iron", scene::Nist("G4_Fe"));  // Железо
+  fReg.AddMaterial("air", g4scene::Nist("G4_AIR"));  // Воздух
+  fReg.AddMaterial("iron", g4scene::Nist("G4_Fe"));  // Железо
 }
 
 G4VPhysicalVolume* GeneratedDetectorConstruction::BuildWorld() {
@@ -41,10 +43,13 @@ void GeneratedDetectorConstruction::BuildBody_box() {
   auto* lv = new G4LogicalVolume(solid, Mat("iron"), "box");
   fReg.AddVolume("box", lv);
   // поворот «тело -> родитель», из JSON: углы X, Y, Z = 30°, 0°, 45° (сначала X, потом Y, потом Z)
-  const scene::Mat3 rotation{{{0.7071067811865476, -0.6123724356957945, 0.3535533905932737},
-                              {0.7071067811865475, 0.6123724356957946, -0.35355339059327373},
-                              {0, 0.49999999999999994, 0.8660254037844387}}};
+  // оси тела в системе родителя (столбцы матрицы): x -> (0.707, 0.707, 0), y -> (-0.612, 0.612, 0.5), z -> (0.354, -0.354, 0.866)
+  const g4scene::Mat3 rotation = g4scene::Rows({0.7071067811865476, -0.6123724356957945,   0.3535533905932737},
+                                               {0.7071067811865475,  0.6123724356957946, -0.35355339059327373},
+                                               {                 0, 0.49999999999999994,   0.8660254037844387});
   // центр тела в системе родителя «world»
-  scene::Place(lv, LV("world"), "box",
-               scene::Transform(rotation, G4ThreeVector(150*mm, -60*mm, 40*mm)));
+  g4scene::Place(lv, LV("world"), "box",
+                 g4scene::Transform(rotation, G4ThreeVector(150*mm, -60*mm, 40*mm)));
 }
+
+}  // namespace box_rot30x_45z

@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
   G4UIExecutive* ui = (argc == 1) ? new G4UIExecutive(argc, argv) : nullptr;
 
   G4RunManager* runManager = G4RunManagerFactory::CreateRunManager(G4RunManagerType::Serial);
-  runManager->SetUserInitialization(new DetectorConstruction);
+  runManager->SetUserInitialization(new nested_boxes::DetectorConstruction);
   // Geant4 не строит геометрию (/run/initialize) без физического листа,
   // даже если частиц не будет. QBBC — стандартный лист, как в примере B1.
   runManager->SetUserInitialization(new QBBC(0));

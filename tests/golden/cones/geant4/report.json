@@ -1,0 +1,77 @@
+{
+  "generator": {
+    "name": "mcscene",
+    "version": "0.1.0"
+  },
+  "target": "geant4",
+  "namespace": "cones",
+  "flags": {
+    "unsafe_skip_checks": false
+  },
+  "input": {
+    "file": "cones.json",
+    "sha256": "aa103de1789db484aa5ce10066a49f5cedfb865957da69d56b8d4ec4bc1a4f0f",
+    "format_version": "0.1"
+  },
+  "world": {
+    "material": "air",
+    "half_size_mm": [
+      206.7823131,
+      74.7823131,
+      84.6576764
+    ],
+    "margin_percent": 10.0
+  },
+  "materials": [
+    {
+      "id": "air",
+      "geant4": "G4_AIR"
+    },
+    {
+      "id": "aluminium",
+      "geant4": "G4_Al"
+    },
+    {
+      "id": "copper",
+      "geant4": "G4_Cu"
+    }
+  ],
+  "bodies": [
+    {
+      "id": "frustum",
+      "volume": "frustum",
+      "mother": "world",
+      "material": "aluminium",
+      "cad_volume_mm3": 490088.4539600077,
+      "probes": 9
+    },
+    {
+      "id": "funnel",
+      "volume": "funnel",
+      "mother": "world",
+      "material": "copper",
+      "cad_volume_mm3": 251327.41228718346,
+      "probes": 6
+    }
+  ],
+  "diagnostics": [
+    {
+      "level": "INFO",
+      "code": "I202",
+      "where": "materials/air",
+      "message": "только NIST-имя: для Geant4 хватит, для FLUKA/MCNP генератор возьмёт состав из базы NIST"
+    },
+    {
+      "level": "INFO",
+      "code": "I202",
+      "where": "materials/aluminium",
+      "message": "только NIST-имя: для Geant4 хватит, для FLUKA/MCNP генератор возьмёт состав из базы NIST"
+    },
+    {
+      "level": "INFO",
+      "code": "I202",
+      "where": "materials/copper",
+      "message": "только NIST-имя: для Geant4 хватит, для FLUKA/MCNP генератор возьмёт состав из базы NIST"
+    }
+  ]
+}

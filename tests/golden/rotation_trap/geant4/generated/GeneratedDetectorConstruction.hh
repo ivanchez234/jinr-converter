@@ -12,6 +12,10 @@ class G4LogicalVolume;
 class G4Material;
 class G4VPhysicalVolume;
 
+// Классы сцены — в своём пространстве имён (по имени сцены): так они не столкнутся
+// с классами вашего проекта Geant4 и с другой сценой в той же программе.
+namespace rotation_trap {
+
 class GeneratedDetectorConstruction : public G4VUserDetectorConstruction {
  public:
   G4VPhysicalVolume* Construct() override;
@@ -25,7 +29,7 @@ class GeneratedDetectorConstruction : public G4VUserDetectorConstruction {
   G4Material* Mat(const G4String& id) const { return fReg.GetMaterial(id); }
   G4LogicalVolume* LV(const G4String& id) const { return fReg.GetVolume(id); }
 
-  scene::Registry fReg;
+  g4scene::Registry fReg;
 
  private:
   void BuildMaterials();
@@ -34,3 +38,5 @@ class GeneratedDetectorConstruction : public G4VUserDetectorConstruction {
   void BuildBody_B();
   void BuildBody_M();
 };
+
+}  // namespace rotation_trap

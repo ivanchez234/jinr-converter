@@ -33,7 +33,7 @@ int main(int argc, char** argv) {
   const int overlapPoints = argc > 1 ? std::atoi(argv[1]) : 100000;
 
   G4cout << "check_geometry: сцена " << expected::kSceneName << G4endl;
-  GeneratedDetectorConstruction construction;
+  box_rot30x_45z_matrix::GeneratedDetectorConstruction construction;
   G4VPhysicalVolume* world = construction.Construct();
   int problems = 0;
 

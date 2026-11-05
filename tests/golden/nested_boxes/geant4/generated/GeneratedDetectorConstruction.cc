@@ -12,6 +12,8 @@
 #include "g4scene/Materials.hh"
 #include "g4scene/Transform.hh"
 
+namespace nested_boxes {
+
 G4VPhysicalVolume* GeneratedDetectorConstruction::Construct() {
   BuildMaterials();
   ConfigureMaterials();                   // хук для user/
@@ -23,9 +25,9 @@ G4VPhysicalVolume* GeneratedDetectorConstruction::Construct() {
 }
 
 void GeneratedDetectorConstruction::BuildMaterials() {
-  fReg.AddMaterial("air", scene::Nist("G4_AIR"));            // Воздух
-  fReg.AddMaterial("concrete", scene::Nist("G4_CONCRETE"));  // Бетон
-  fReg.AddMaterial("iron", scene::Nist("G4_Fe"));            // Железо
+  fReg.AddMaterial("air", g4scene::Nist("G4_AIR"));            // Воздух
+  fReg.AddMaterial("concrete", g4scene::Nist("G4_CONCRETE"));  // Бетон
+  fReg.AddMaterial("iron", g4scene::Nist("G4_Fe"));            // Железо
 }
 
 G4VPhysicalVolume* GeneratedDetectorConstruction::BuildWorld() {
@@ -43,8 +45,8 @@ void GeneratedDetectorConstruction::BuildBody_outer() {
   auto* lv = new G4LogicalVolume(solid, Mat("concrete"), "outer");
   fReg.AddVolume("outer", lv);
   // центр тела в системе родителя «world»
-  scene::Place(lv, LV("world"), "outer",
-               scene::Transform(scene::kIdentity, G4ThreeVector(0*mm, 0*mm, 100*mm)));
+  g4scene::Place(lv, LV("world"), "outer",
+                 g4scene::Transform(g4scene::kIdentity, G4ThreeVector(0*mm, 0*mm, 100*mm)));
 }
 
 // Тело "inner" — «Железная вставка 100×50×20»; материал: Железо, G4_Fe
@@ -54,6 +56,8 @@ void GeneratedDetectorConstruction::BuildBody_inner() {
   auto* lv = new G4LogicalVolume(solid, Mat("iron"), "inner");
   fReg.AddVolume("inner", lv);
   // центр тела в системе родителя «outer»
-  scene::Place(lv, LV("outer"), "inner",
-               scene::Transform(scene::kIdentity, G4ThreeVector(50*mm, -30*mm, 10*mm)));
+  g4scene::Place(lv, LV("outer"), "inner",
+                 g4scene::Transform(g4scene::kIdentity, G4ThreeVector(50*mm, -30*mm, 10*mm)));
 }
+
+}  // namespace nested_boxes

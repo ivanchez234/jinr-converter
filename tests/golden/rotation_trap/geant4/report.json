@@ -4,6 +4,7 @@
     "version": "0.1.0"
   },
   "target": "geant4",
+  "namespace": "rotation_trap",
   "flags": {
     "unsafe_skip_checks": false
   },
@@ -46,7 +47,7 @@
       "mother": "world",
       "material": "concrete",
       "cad_volume_mm3": 6000000.0,
-      "probes": 0
+      "probes": 15
     },
     {
       "id": "B",
@@ -54,7 +55,7 @@
       "mother": "A",
       "material": "iron",
       "cad_volume_mm3": 144000.0,
-      "probes": 0
+      "probes": 15
     },
     {
       "id": "M",

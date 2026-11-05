@@ -12,6 +12,8 @@
 #include "g4scene/Materials.hh"
 #include "g4scene/Transform.hh"
 
+namespace rotated_box {
+
 G4VPhysicalVolume* GeneratedDetectorConstruction::Construct() {
   BuildMaterials();
   ConfigureMaterials();                   // хук для user/
@@ -22,8 +24,8 @@ G4VPhysicalVolume* GeneratedDetectorConstruction::Construct() {
 }
 
 void GeneratedDetectorConstruction::BuildMaterials() {
-  fReg.AddMaterial("air", scene::Nist("G4_AIR"));  // Воздух
-  fReg.AddMaterial("iron", scene::Nist("G4_Fe"));  // Железо
+  fReg.AddMaterial("air", g4scene::Nist("G4_AIR"));  // Воздух
+  fReg.AddMaterial("iron", g4scene::Nist("G4_Fe"));  // Железо
 }
 
 G4VPhysicalVolume* GeneratedDetectorConstruction::BuildWorld() {
@@ -41,10 +43,13 @@ void GeneratedDetectorConstruction::BuildBody_box() {
   auto* lv = new G4LogicalVolume(solid, Mat("iron"), "box");
   fReg.AddVolume("box", lv);
   // поворот «тело -> родитель», из JSON: углы X, Y, Z = 0°, 0°, 90° (сначала X, потом Y, потом Z)
-  const scene::Mat3 rotation{{{0, -1, 0},
-                              {1, 0, 0},
-                              {0, 0, 1}}};
+  // оси тела в системе родителя (столбцы матрицы): x -> +y, y -> -x, z -> +z
+  const g4scene::Mat3 rotation = g4scene::Rows({0, -1, 0},
+                                               {1,  0, 0},
+                                               {0,  0, 1});
   // центр тела в системе родителя «world»
-  scene::Place(lv, LV("world"), "box",
-               scene::Transform(rotation, G4ThreeVector(300*mm, -150*mm, 80*mm)));
+  g4scene::Place(lv, LV("world"), "box",
+                 g4scene::Transform(rotation, G4ThreeVector(300*mm, -150*mm, 80*mm)));
 }
+
+}  // namespace rotated_box

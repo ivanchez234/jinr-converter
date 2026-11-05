@@ -4,6 +4,7 @@
     "version": "0.1.0"
   },
   "target": "geant4",
+  "namespace": "scene_02_box_20x40x70",
   "flags": {
     "unsafe_skip_checks": false
   },

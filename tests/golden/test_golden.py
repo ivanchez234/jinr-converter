@@ -28,8 +28,19 @@ SCENES = {
     "rotation_trap": TEST_SCENES / "rotation_trap.json",
     "box_rot30x_45z": TEST_SCENES / "box_rot30x_45z.json",
     "box_rot30x_45z_matrix": TEST_SCENES / "box_rot30x_45z_matrix.json",
+    "cylinder_rot": TEST_SCENES / "cylinder_rot.json",
+    "tube": TEST_SCENES / "tube.json",
+    "spheres": TEST_SCENES / "spheres.json",
+    "cones": TEST_SCENES / "cones.json",
+    "torus_ball": TEST_SCENES / "torus_ball.json",
     "01_kub": FREECAD_FIXTURES / "01_kub" / "scene.json",
     "02_box_20x40x70": FREECAD_FIXTURES / "02_box_20x40x70" / "scene.json",
+    "03_box_rotated": FREECAD_FIXTURES / "03_box_rotated" / "scene.json",
+    "04_cylinder_y90": FREECAD_FIXTURES / "04_cylinder_y90" / "scene.json",
+    "05_sphere": FREECAD_FIXTURES / "05_sphere" / "scene.json",
+    "06_cone": FREECAD_FIXTURES / "06_cone" / "scene.json",
+    "07_torus": FREECAD_FIXTURES / "07_torus" / "scene.json",
+    "08_pipe_vacuum": FREECAD_FIXTURES / "08_pipe_vacuum" / "scene.json",
 }
 
 

@@ -4,6 +4,7 @@
     "version": "0.1.0"
   },
   "target": "geant4",
+  "namespace": "box_in_world",
   "flags": {
     "unsafe_skip_checks": false
   },

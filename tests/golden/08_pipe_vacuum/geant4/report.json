@@ -1,0 +1,77 @@
+{
+  "generator": {
+    "name": "mcscene",
+    "version": "0.1.0"
+  },
+  "target": "geant4",
+  "namespace": "scene_08_pipe_vacuum",
+  "flags": {
+    "unsafe_skip_checks": false
+  },
+  "input": {
+    "file": "scene.json",
+    "sha256": "5e693bf654bb9aa6218fcd31dca56dd5704daf4dcdec24c2923b176fb045d0ca",
+    "format_version": "0.1"
+  },
+  "world": {
+    "material": "air",
+    "half_size_mm": [
+      66.0,
+      66.0,
+      550.0
+    ],
+    "margin_percent": 10.0
+  },
+  "materials": [
+    {
+      "id": "air",
+      "geant4": "G4_AIR"
+    },
+    {
+      "id": "steel",
+      "geant4": "G4_STAINLESS-STEEL"
+    },
+    {
+      "id": "vacuum",
+      "geant4": "G4_Galactic"
+    }
+  ],
+  "bodies": [
+    {
+      "id": "Pipe",
+      "volume": "Pipe",
+      "mother": "world",
+      "material": "steel",
+      "cad_volume_mm3": 11309733.552923255,
+      "probes": 6
+    },
+    {
+      "id": "Vacuum",
+      "volume": "Vacuum",
+      "mother": "Pipe",
+      "material": "vacuum",
+      "cad_volume_mm3": 9408284.599338032,
+      "probes": 7
+    }
+  ],
+  "diagnostics": [
+    {
+      "level": "INFO",
+      "code": "I202",
+      "where": "materials/air",
+      "message": "только NIST-имя: для Geant4 хватит, для FLUKA/MCNP генератор возьмёт состав из базы NIST"
+    },
+    {
+      "level": "INFO",
+      "code": "I202",
+      "where": "materials/steel",
+      "message": "только NIST-имя: для Geant4 хватит, для FLUKA/MCNP генератор возьмёт состав из базы NIST"
+    },
+    {
+      "level": "INFO",
+      "code": "I202",
+      "where": "materials/vacuum",
+      "message": "только NIST-имя: для Geant4 хватит, для FLUKA/MCNP генератор возьмёт состав из базы NIST"
+    }
+  ]
+}
