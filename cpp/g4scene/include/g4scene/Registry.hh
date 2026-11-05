@@ -1,7 +1,7 @@
 // Реестр материалов и логических объёмов по id из scene.json.
 //
 // Сгенерированный код регистрирует всё, что построил, и потом берёт по id:
-//   fReg.AddMaterial("iron", scene::Nist("G4_Fe"));
+//   fReg.AddMaterial("iron", g4scene::Nist("G4_Fe"));
 //   ... new G4LogicalVolume(solid, fReg.GetMaterial("iron"), "Body") ...
 // Если id нет — понятная ошибка «материал 'steel' не найден», а не падение
 // на nullptr где-то в глубине Geant4.
@@ -15,7 +15,7 @@
 class G4LogicalVolume;
 class G4Material;
 
-namespace scene {
+namespace g4scene {
 
 class Registry {
  public:
@@ -39,4 +39,4 @@ class Registry {
   std::map<std::string, G4LogicalVolume*> fVolumes;
 };
 
-}  // namespace scene
+}  // namespace g4scene

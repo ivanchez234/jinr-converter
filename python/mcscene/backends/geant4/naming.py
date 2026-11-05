@@ -10,9 +10,14 @@ id из JSON (^[A-Za-z_][A-Za-z0-9_-]*$) годится как имя объём
   - "world" занято под мир: тело с id "world" получает объём "world_body" -> I401.
 
 Кто первый в массиве bodies, тот сохраняет простое имя: результат детерминирован.
+
+Пространство имён C++ для классов сцены — по имени сцены (cpp_namespace): так код сцены
+не столкнётся с классами в проекте физика (там почти всегда свой DetectorConstruction)
+и с другой сценой в той же программе.
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 from ...diagnostics import Diagnostics
@@ -20,6 +25,19 @@ from ...passes import Pass
 
 WORLD = "world"
 RESERVED = frozenset({WORLD})
+
+# Слова, которые нельзя взять именем пространства имён: ключевые слова C++20 и имена,
+# которые уже заняты в сгенерированном проекте (std, библиотека g4scene, стенд expected).
+CPP_RESERVED = frozenset('''
+alignas alignof and and_eq asm auto bitand bitor bool break case catch char char8_t char16_t
+char32_t class compl concept const consteval constexpr constinit const_cast continue co_await
+co_return co_yield decltype default delete do double dynamic_cast else enum explicit export
+extern false float for friend goto if inline int long mutable namespace new noexcept not not_eq
+nullptr operator or or_eq private protected public register reinterpret_cast requires return
+short signed sizeof static static_assert static_cast struct switch template this thread_local
+throw true try typedef typeid typename union unsigned using virtual void volatile wchar_t while
+xor xor_eq std g4scene expected
+'''.split())
 
 
 @dataclass(frozen=True)
@@ -30,7 +48,21 @@ class BodyNames:
 
 
 class Geant4Naming(Pass):
-    """Сцена -> {id тела: BodyNames}."""
+    """Сцена -> {id тела: BodyNames}; плюс имя пространства имён C++ для сцены."""
+
+    @staticmethod
+    def cpp_namespace(scene_name: str) -> str:
+        """Имя сцены -> имя namespace: rotation_trap -> rotation_trap, 02_box -> scene_02_box.
+
+        Имя C++ не может начинаться с цифры, двойное подчёркивание и подчёркивание в начале
+        зарезервированы за компилятором, ключевые слова и занятые имена (CPP_RESERVED) брать
+        нельзя, а имя на G4 столкнулось бы с классами Geant4. В этих случаях — приставка scene_.
+        """
+        name = re.sub(r"[^A-Za-z0-9_]", "_", scene_name)
+        name = re.sub(r"_+", "_", name).strip("_") or "scene"
+        if name[0].isdigit() or name in CPP_RESERVED or name.startswith("G4"):
+            name = "scene_" + name
+        return name
 
     def run(self, scene, diags: Diagnostics) -> dict[str, BodyNames]:
         ids = [b.id for b in scene.bodies]

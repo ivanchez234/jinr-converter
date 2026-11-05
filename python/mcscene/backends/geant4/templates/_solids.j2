@@ -9,8 +9,32 @@
 
 {% set HEADERS = {
     "box": "G4Box.hh",
+    "tubs": "G4Tubs.hh",
+    "cons": "G4Cons.hh",
+    "orb": "G4Orb.hh",
+    "sphere": "G4Sphere.hh",
+    "torus": "G4Torus.hh",
 } %}
 
 {#- Коробка. G4Box берёт половины размеров по x, y, z. -#}
 {% macro box_note(s) %}коробка {{ s.size|sizes }} мм (G4Box берёт половины){% endmacro %}
 {% macro box(s) %}new G4Box({{ s.name|cpp_str }}, {{ s.half|map("mm")|join(", ") }}){% endmacro %}
+
+{#- Цилиндр и труба. G4Tubs берёт радиусы как есть и половину высоты; полный круг — от 0 до 360°. -#}
+{% macro tubs_note(s) %}{% if s.rmin %}труба R {{ s.rmax|num }} / {{ s.rmin|num }}{% else %}цилиндр R {{ s.rmax|num }}{% endif %}, высота {{ s.height|num }} мм (G4Tubs берёт половину высоты){% endmacro %}
+{% macro tubs(s) %}new G4Tubs({{ s.name|cpp_str }}, {{ s.rmin|mm }}, {{ s.rmax|mm }}, {{ s.half_z|mm }}, 0*deg, 360*deg){% endmacro %}
+
+{#- Конус. G4Cons берёт сначала радиусы низа (z = -H/2: внутренний, внешний), потом верха (z = +H/2),
+    потом половину высоты; полный круг — от 0 до 360°. -#}
+{% macro cons_note(s) %}{% if s.rmin_bottom or s.rmin_top %}полый конус: низ R {{ s.rmax_bottom|num }} / {{ s.rmin_bottom|num }}, верх R {{ s.rmax_top|num }} / {{ s.rmin_top|num }}{% else %}конус: низ R {{ s.rmax_bottom|num }}, верх R {{ s.rmax_top|num }}{% endif %}, высота {{ s.height|num }} мм (G4Cons: сначала низ при z = −H/2, берёт половину высоты){% endmacro %}
+{% macro cons(s) %}new G4Cons({{ s.name|cpp_str }}, {{ s.rmin_bottom|mm }}, {{ s.rmax_bottom|mm }}, {{ s.rmin_top|mm }}, {{ s.rmax_top|mm }}, {{ s.half_z|mm }}, 0*deg, 360*deg){% endmacro %}
+
+{#- Шар. Сплошной — G4Orb (только радиус), полый — G4Sphere: радиусы и полный круг по обоим углам. -#}
+{% macro orb_note(s) %}шар R {{ s.radius|num }} мм (G4Orb){% endmacro %}
+{% macro orb(s) %}new G4Orb({{ s.name|cpp_str }}, {{ s.radius|mm }}){% endmacro %}
+{% macro sphere_note(s) %}полый шар R {{ s.rmax|num }} / {{ s.rmin|num }} мм (G4Sphere, полный по обоим углам){% endmacro %}
+{% macro sphere(s) %}new G4Sphere({{ s.name|cpp_str }}, {{ s.rmin|mm }}, {{ s.rmax|mm }}, 0*deg, 360*deg, 0*deg, 180*deg){% endmacro %}
+
+{#- Тор. G4Torus берёт радиусы трубки (внутренний, внешний), потом радиус от оси до центра трубки; полный круг. -#}
+{% macro torus_note(s) %}тор R {{ s.rtor|num }}, трубка r {{ s.rmax|num }} мм (G4Torus: сначала радиусы трубки, потом R){% endmacro %}
+{% macro torus(s) %}new G4Torus({{ s.name|cpp_str }}, {{ s.rmin|mm }}, {{ s.rmax|mm }}, {{ s.rtor|mm }}, 0*deg, 360*deg){% endmacro %}

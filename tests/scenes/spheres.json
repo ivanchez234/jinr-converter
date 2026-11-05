@@ -1,0 +1,38 @@
+{
+  "format": "jinr-mc-scene",
+  "format_version": "0.1",
+  "source": {"tool": "hand-written", "document": "tests/scenes/spheres.json"},
+  "units": {"length": "mm", "angle": "deg", "density": "g/cm3"},
+  "world": {"material": "air", "margin_percent": 10},
+  "materials": [
+    {"id": "air", "name": "Воздух", "nist": "G4_AIR"},
+    {"id": "lead", "name": "Свинец", "nist": "G4_Pb"},
+    {"id": "iron", "name": "Железо", "nist": "G4_Fe"}
+  ],
+  "bodies": [
+    {
+      "id": "ball",
+      "name": "Свинцовый шар R25",
+      "parent": null,
+      "material": "lead",
+      "transform": {"translation": [-80, 10, 0], "rotation": {"convention": "identity"}},
+      "shape": {"type": "sphere", "radius": 25},
+      "verification": {
+        "cad_volume": 65449.84694978735,
+        "bbox": [[-105.0, -15.0, -25.0], [-55.0, 35.0, 25.0]]
+      }
+    },
+    {
+      "id": "shell",
+      "name": "Железная сферическая оболочка R50/40",
+      "parent": null,
+      "material": "iron",
+      "transform": {"translation": [40, 0, 20], "rotation": {"convention": "identity"}},
+      "shape": {"type": "sphere", "radius": 50, "inner_radius": 40},
+      "verification": {
+        "cad_volume": 255516.20249196983,
+        "bbox": [[-10.0, -50.0, -30.0], [90.0, 50.0, 70.0]]
+      }
+    }
+  ]
+}

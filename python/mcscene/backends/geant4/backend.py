@@ -45,6 +45,14 @@ class VisColour:
     alpha: float
 
 
+@dataclass(frozen=True)
+class ExampleDetector:
+    """Пример чувствительного объёма в user/DetectorConstruction.hh (задача Д, шаг 1)."""
+    volume: str          # имя объёма в Geant4: LV("M")
+    name: str            # имя детектора в G4SDManager: dose_M
+    title: str           # подпись тела: Тело "M" — «…»; материал: …
+
+
 class Geant4Backend(Backend):
     name = "geant4"
     description = "CMake-проект Geant4: геометрия сцены, стенд check_geometry, окно scene_app"
@@ -62,8 +70,10 @@ class Geant4Backend(Backend):
             "world": plan.world,
             "materials": plan.materials,
             "bodies": plan.bodies,
-            "solid_kinds": sorted({b.solid.kind for b in plan.bodies}),
+            # какие заголовки фигур подключить; мир — G4Box, поэтому "box" нужен всегда
+            "solid_kinds": sorted({b.solid.kind for b in plan.bodies} | {"box"}),
             "colours": self.vis_colours(plan),
+            "example_detector": self.example_detector(plan),
         }
 
     def extra_files(self, plan: G4Plan, diagnostics: list[Diagnostic]) -> dict[str, str]:
@@ -80,6 +90,13 @@ class Geant4Backend(Backend):
                 "cd %s/build && ./scene_app             # окно Geant4 с моделью" % out_dir]
 
     # --- помощники цели ------------------------------------------------------------
+    @staticmethod
+    def example_detector(plan: G4Plan) -> ExampleDetector:
+        """Для примера детектора — первое тело без детей (внутри него ничего не лежит)."""
+        mothers = {b.mother for b in plan.bodies}
+        b = next(b for b in plan.bodies if b.volume not in mothers)
+        return ExampleDetector(volume=b.volume, name="dose_" + b.volume, title=b.title)
+
     @staticmethod
     def vis_colours(plan: G4Plan) -> list[VisColour]:
         """Цвет по материалу (по порядку появления), родители — полупрозрачные."""
@@ -101,6 +118,7 @@ class Geant4Backend(Backend):
         report = {
             "generator": {"name": "mcscene", "version": plan.generator_version},
             "target": "geant4",
+            "namespace": plan.namespace,
             "flags": {"unsafe_skip_checks": plan.unsafe},
             "input": {"file": plan.input_name, "sha256": plan.input_sha256,
                       "format_version": plan.format_version},

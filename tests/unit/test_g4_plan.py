@@ -5,7 +5,7 @@ from itertools import product
 
 import pytest
 
-from mcscene.backends.geant4.filters import num
+from mcscene.backends.geant4.filters import mat3_rows, num
 from mcscene.backends.geant4.plan import Geant4Planner, scene_name
 from mcscene.io.contract import load_contract_validator
 from mcscene.model import Scene
@@ -19,7 +19,7 @@ BOX02 = FREECAD_FIXTURES / "02_box_20x40x70" / "etalon.json"
 
 def load(path):
     with open(path, encoding="utf-8") as f:
-        return Scene.model_validate(json.load(f))
+        return Scene.from_dict(json.load(f))
 
 
 def plan_of(path):
@@ -34,6 +34,33 @@ def plan_of(path):
                                   (1e20, "1e+20"), (1e-7, "1e-07")])
 def test_number_format(x, s):
     assert num(x) == s
+
+
+def test_matrix_rows_are_aligned():
+    # аргументы g4scene::Rows: строка матрицы — строка кода, столбцы выровнены вправо
+    assert mat3_rows(((0, 1, 0), (0, 0, -1), (-1, 0, 0)), indent=4) == (
+        "{ 0, 1,  0},\n"
+        "    { 0, 0, -1},\n"
+        "    {-1, 0,  0}")
+    assert mat3_rows(((0.5, -0.0, 1), (0, 1, 0), (-1, 0, 0.25)), indent=0) == (
+        "{0.5, 0,    1},\n"
+        "{  0, 1,    0},\n"
+        "{ -1, 0, 0.25}")
+
+
+@pytest.mark.parametrize("scene, note", [
+    ("rotated_box.json", "x -> +y, y -> -x, z -> +z"),
+    ("box_rot30x_45z.json", "x -> (0.707, 0.707, 0), y -> (-0.612, 0.612, 0.5), z -> (0.354, -0.354, 0.866)"),
+    ("box_in_world.json", ""),
+])
+def test_axes_note(scene, note):
+    # подпись к матрице: столбцы — куда смотрят оси тела в системе родителя
+    assert plan_of(TEST_SCENES / scene).bodies[0].axes_note == note
+
+
+def test_axes_note_in_trap():
+    notes = {b.id: b.axes_note for b in plan_of(TEST_SCENES / "rotation_trap.json").bodies}
+    assert notes == {"A": "x -> +y, y -> +z, z -> +x", "B": "x -> -z, y -> +y, z -> +x", "M": ""}
 
 
 # --- коробка Никиты 02 ---
@@ -74,11 +101,15 @@ def test_rotated_box_probes_follow_rotation():
                        for sx, sy, sz in product((-1, 1), repeat=3)}
 
 
-def test_nested_parent_first_and_probes_only_in_leaves():
+def test_nested_parent_first_and_parent_probes_avoid_child():
     p = plan_of(TEST_SCENES / "nested_boxes.json")
     assert [(b.id, b.mother) for b in p.bodies] == [("outer", "world"), ("inner", "outer")]
     outer, inner = p.bodies
-    assert outer.probes == ()                                   # у родителя есть ребёнок
+    # у родителя: 9 точек коробки (вставка их не задевает) + 6 на лучах от центра
+    assert len(outer.probes) == 15 and {pr.volume for pr in outer.probes} == {"outer"}
+    # луч −y идёт по ребру вставки (x = 0, z = 0) — она занимает y от −55 до −5, так что
+    # точка — в середине свободного отрезка от −55 до −150 (блок стоит в (0, 0, 100))
+    assert (0.0, -102.5, 100.0) in {pr.point for pr in outer.probes}
     assert inner.translation == (50, -30, 10)                   # относительно родителя
     assert (50.0, -30.0, 110.0) in {pr.point for pr in inner.probes}   # а точка — в мире
 
@@ -95,7 +126,7 @@ def test_unsupported_scene_has_no_plan():
     r = Geant4Planner(load(CONTRACT_V0_1 / "examples" / "02_nested_pipe.json"),
                       CONTRACT_V0_1 / "examples" / "02_nested_pipe.json").build()
     assert r.plan is None
-    assert {d.code for d in r.diagnostics if d.level == "ERROR"} == {"E301", "E310"}
+    assert {d.code for d in r.diagnostics if d.level == "ERROR"} == {"E310"}      # цилиндры уже умеем
 
 
 def test_deterministic():
@@ -138,17 +169,47 @@ def _inside_box(p, size, margin=1e-6):
     return all(abs(p[i]) < size[i] / 2 - margin for i in range(3))
 
 
+def _inside_shape(p, shape, margin=1e-6):
+    """Точка в собственной системе формы лежит внутри неё (своя проверка, без mcscene)."""
+    if shape["type"] == "box":
+        return _inside_box(p, shape["size"], margin)
+    if shape["type"] == "cylinder":
+        r = (p[0] ** 2 + p[1] ** 2) ** 0.5
+        inner = shape.get("inner_radius", 0)
+        return (abs(p[2]) < shape["height"] / 2 - margin and r < shape["radius"] - margin
+                and (inner == 0 or r > inner + margin))
+    if shape["type"] == "cone":
+        h = shape["height"]
+        f = p[2] / h + 0.5
+        ro = shape["radius_bottom"] + (shape["radius_top"] - shape["radius_bottom"]) * f
+        ib, it = shape.get("inner_radius_bottom", 0), shape.get("inner_radius_top", 0)
+        ri = ib + (it - ib) * f
+        r = (p[0] ** 2 + p[1] ** 2) ** 0.5
+        return abs(p[2]) < h / 2 - margin and r < ro - margin and (ib == it == 0 or r > ri + margin)
+    if shape["type"] == "torus":
+        q = (((p[0] ** 2 + p[1] ** 2) ** 0.5 - shape["major_radius"]) ** 2 + p[2] ** 2) ** 0.5
+        return q < shape["minor_radius"] - margin
+    if shape["type"] == "sphere":
+        r = (p[0] ** 2 + p[1] ** 2 + p[2] ** 2) ** 0.5
+        inner = shape.get("inner_radius", 0)
+        return r < shape["radius"] - margin and (inner == 0 or r > inner + margin)
+    raise AssertionError("нет проверки для формы %s" % shape["type"])
+
+
 @pytest.mark.parametrize("path", list(_buildable()))
 def test_every_probe_lies_inside_its_body(path):
     doc = json.loads(path.read_text(encoding="utf-8"))
-    sizes = {b["id"]: b["shape"]["size"] for b in doc["bodies"]}
+    shapes = {b["id"]: b["shape"] for b in doc["bodies"]}
+    kids = {b["id"]: [c["id"] for c in doc["bodies"] if c["parent"] == b["id"]] for b in doc["bodies"]}
     plan = plan_of(path)
     n = 0
     for b in plan.bodies:
         for pr in b.probes:
-            assert _inside_box(_local_point(doc, b.id, pr.point), sizes[b.id]), (b.id, pr.point)
+            assert _inside_shape(_local_point(doc, b.id, pr.point), shapes[b.id]), (b.id, pr.point)
+            for k in kids[b.id]:      # а у родителя — не в ребёнке (отрицательный запас раздувает ребёнка)
+                assert not _inside_shape(_local_point(doc, k, pr.point), shapes[k], margin=-1e-6), (b.id, k, pr.point)
             n += 1
-    assert n >= 9
+    assert n >= 6
 
 
 def test_probes_catch_transposed_matrix(scene, box, tmp_path):
@@ -160,7 +221,7 @@ def test_probes_catch_transposed_matrix(scene, box, tmp_path):
     rot = {"convention": "euler_xyz_extrinsic_deg", "angles": [30, 0, 45]}
     good = scene(box("b", (20, 40, 70), (300, -150, 80), rotation=rot))
     path = tmp_path / "scene.json"
-    path.write_text(good.model_dump_json(exclude_unset=True), encoding="utf-8")
+    path.write_text(json.dumps(good.to_dict(), ensure_ascii=False), encoding="utf-8")
     doc = json.loads(path.read_text(encoding="utf-8"))
 
     probes = plan_of(path).bodies[0].probes

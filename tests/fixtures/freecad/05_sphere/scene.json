@@ -1,0 +1,76 @@
+{
+  "format": "jinr-mc-scene",
+  "format_version": "0.1",
+  "min_reader_version": "0.1",
+  "source": {
+    "tool": "freecad-reference-samples",
+    "tool_version": "0.1.0",
+    "document": "04_sphere.FCStd"
+  },
+  "units": {
+    "length": "mm",
+    "angle": "deg",
+    "density": "g/cm3"
+  },
+  "world": {
+    "material": "air",
+    "margin_percent": 10
+  },
+  "materials": [
+    {
+      "id": "air",
+      "name": "Воздух",
+      "nist": "G4_AIR"
+    },
+    {
+      "id": "iron",
+      "name": "iron",
+      "nist": "G4_Fe"
+    }
+  ],
+  "bodies": [
+    {
+      "id": "Sphere",
+      "name": "Сфера R50",
+      "parent": null,
+      "material": "iron",
+      "transform": {
+        "translation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation": {
+          "convention": "identity"
+        }
+      },
+      "shape": {
+        "type": "sphere",
+        "radius": 50.0
+      },
+      "verification": {
+        "cad_volume": 523598.7755982988,
+        "cad_area": 31415.926535897932,
+        "bbox": [
+          [
+            -50.0,
+            -50.0,
+            -50.0
+          ],
+          [
+            50.0,
+            50.0,
+            50.0
+          ]
+        ]
+      },
+      "extras": {
+        "freecad": {
+          "name": "Sphere",
+          "label": "Сфера R50",
+          "type_id": "Part::Sphere"
+        }
+      }
+    }
+  ]
+}

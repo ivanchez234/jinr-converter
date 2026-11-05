@@ -42,7 +42,7 @@ def make_scene(*bodies, materials=None, margin=10, world_material="air"):
     doc["world"] = {"material": world_material, "margin_percent": margin}
     if materials is not None:
         doc["materials"] = materials
-    return Scene.model_validate(doc)
+    return Scene.from_dict(doc)
 
 
 @pytest.fixture

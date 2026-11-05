@@ -1,0 +1,31 @@
+{
+  "format": "jinr-mc-scene",
+  "format_version": "0.1",
+  "source": {"tool": "hand-written", "document": "tests/scenes/tube.json"},
+  "units": {"length": "mm", "angle": "deg", "density": "g/cm3"},
+  "world": {"material": "air", "margin_percent": 10},
+  "materials": [
+    {"id": "air", "name": "Воздух", "nist": "G4_AIR"},
+    {"id": "copper", "name": "Медь", "nist": "G4_Cu"}
+  ],
+  "bodies": [
+    {
+      "id": "tube",
+      "name": "Медная труба R50/40 H200, ось вдоль x (90° вокруг y)",
+      "parent": null,
+      "material": "copper",
+      "transform": {
+        "translation": [50, 0, -30],
+        "rotation": {
+          "convention": "euler_xyz_extrinsic_deg",
+          "angles": [0, 90, 0]
+        }
+      },
+      "shape": {"type": "cylinder", "radius": 50, "inner_radius": 40, "height": 200},
+      "verification": {
+        "cad_volume": 565486.6776461628,
+        "bbox": [[-50.0, -50.0, -80.0], [150.0, 50.0, 20.0]]
+      }
+    }
+  ]
+}

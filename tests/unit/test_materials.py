@@ -19,7 +19,7 @@ def run(p, scene):
 
 def load(path):
     with open(path, encoding="utf-8") as f:
-        return Scene.model_validate(json.load(f))
+        return Scene.from_dict(json.load(f))
 
 
 def test_fixture_02_nist_only():

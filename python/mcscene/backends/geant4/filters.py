@@ -42,15 +42,19 @@ def comment(s: str) -> str:
     return " ".join(str(s).split())
 
 
-def mat3_init(m: Sequence[Sequence[float]], indent: int) -> str:
-    """Литерал scene::Mat3 из трёх строк: {{{a, b, c},\\n<indent>{d, e, f},\\n<indent>{g, h, i}}}.
+def mat3_rows(m: Sequence[Sequence[float]], indent: int) -> str:
+    """Аргументы g4scene::Rows: по строке матрицы на строку кода, столбцы выровнены вправо.
 
-    Фигурные скобки печатает фильтр, а не шаблон: в тексте шаблона «{{» значило бы
-    начало вставки Jinja2 (правило 4 решения 001).
+        {0, -1, 0},
+        {1,  0, 0},          <- перед второй и третьей строкой — indent пробелов
+        {0,  0, 1}
+
+    Числа пишутся как есть (num), без округления: в C++ та же матрица, что в плане.
     """
-    rows = ["{%s}" % ", ".join(num(x) for x in row) for row in m]
-    pad = " " * indent
-    return "{{%s,\n%s%s,\n%s%s}}" % (rows[0], pad, rows[1], pad, rows[2])
+    cells = [[num(x) for x in row] for row in m]
+    width = [max(len(row[j]) for row in cells) for j in range(3)]
+    rows = ["{%s}" % ", ".join(c.rjust(w) for c, w in zip(row, width)) for row in cells]
+    return (",\n" + " " * indent).join(rows)
 
 
 def align_comments(block: str, marker: str = "  // ") -> str:
@@ -73,6 +77,6 @@ FILTERS = {
     "sizes": sizes,
     "cpp_str": cpp_str,
     "comment": comment,
-    "mat3_init": mat3_init,
+    "mat3_rows": mat3_rows,
     "align_comments": align_comments,
 }

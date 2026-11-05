@@ -64,7 +64,7 @@ GOOD = sorted((CONTRACT_V0_1 / "examples").glob("*.json")) + all_test_scenes()
 @pytest.mark.parametrize("path", GOOD, ids=scene_id)
 def test_names_unique_and_valid_in_all_scenes(path):
     with open(path, encoding="utf-8") as f:
-        names, _ = run(Geant4Naming(), Scene.model_validate(json.load(f)))
+        names, _ = run(Geant4Naming(), Scene.from_dict(json.load(f)))
     volumes = [n.volume for n in names.values()]
     funcs = [n.func for n in names.values()]
     assert len(set(volumes)) == len(volumes) and "world" not in volumes

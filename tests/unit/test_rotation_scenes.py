@@ -74,7 +74,7 @@ def read(path):
 
 
 def plan_of(path):
-    r = Geant4Planner(Scene.model_validate(read(path)), path).build()
+    r = Geant4Planner(Scene.from_dict(read(path)), path).build()
     assert r.plan is not None, [d for d in r.diagnostics if d.level == "ERROR"]
     return r.plan
 
@@ -111,10 +111,11 @@ def test_trap_marker_probes_in_plan():
     assert {(p.volume, p.material) for p in m.probes} == {("M", "G4_Pb")}
 
 
-def test_trap_only_marker_has_probes():
-    # точки ставятся только в тела без детей: в A и B их место заняли бы дети
+def test_trap_parents_get_probes_too():
+    # точки есть и у A и B — там, где нет детей (ProbePass); что они в своём теле
+    # и не в ребёнке, проверяет test_correct_matrix_puts_every_probe_in_place
     plan = plan_of(TRAP)
-    assert [b.id for b in plan.bodies if b.probes] == ["M"]
+    assert [(b.id, len(b.probes)) for b in plan.bodies] == [("A", 15), ("B", 15), ("M", 9)]
 
 
 def test_trap_marker_center_in_expected_checks(tmp_path):
@@ -250,3 +251,17 @@ def test_transposed_matrix_not_caught_at_90_degrees():
     # занимает то же место, так что все точки остаются в ней. Поэтому одних поворотов
     # на 90° мало, и нужны ловушка и коробка 30°/45°.
     assert misplaced_probes(ROTATED_90, broken=True) == []
+
+
+# --- повёрнутая коробка из FreeCAD (Никита, 29.10) = наша коробка 30°/45° -----------------
+def test_nikita_box_matches_ours():
+    from mcscene.paths import FREECAD_FIXTURES
+    path = FREECAD_FIXTURES / "03_box_rotated" / "scene.json"
+    nikita = body_plan(plan_of(path), "Box")
+    ours = body_plan(plan_of(BOX_EULER), "box")
+    assert close_m(nikita.matrix, ours.matrix, 1e-12)
+    assert close_m(nikita.matrix, R_BOX, 1e-12)                 # и с нашей формулой Rz(45)·Rx(30)
+    # во FreeCAD Placement.Base — угол коробки (300, −150, 80); центр = угол + R·(10, 20, 35)
+    centre = add(apply(R_BOX, list(BOX_HALF)), [300, -150, 80])
+    assert close(nikita.translation, centre, 1e-6)
+    assert read(path)["bodies"][0]["verification"]["cad_volume"] == pytest.approx(56000)

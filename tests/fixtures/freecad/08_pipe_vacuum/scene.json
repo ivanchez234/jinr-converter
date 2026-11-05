@@ -1,0 +1,126 @@
+{
+  "format": "jinr-mc-scene",
+  "format_version": "0.1",
+  "min_reader_version": "0.1",
+  "source": {
+    "tool": "freecad-reference-samples",
+    "tool_version": "0.1.0",
+    "document": "03_pipe_vacuum.FCStd"
+  },
+  "units": {
+    "length": "mm",
+    "angle": "deg",
+    "density": "g/cm3"
+  },
+  "world": {
+    "material": "air",
+    "margin_percent": 10
+  },
+  "materials": [
+    {
+      "id": "air",
+      "name": "Воздух",
+      "nist": "G4_AIR"
+    },
+    {
+      "id": "steel",
+      "name": "steel",
+      "nist": "G4_STAINLESS-STEEL"
+    },
+    {
+      "id": "vacuum",
+      "name": "vacuum",
+      "nist": "G4_Galactic"
+    }
+  ],
+  "bodies": [
+    {
+      "id": "Pipe",
+      "name": "Сталь — сплошной родитель R60 H1000",
+      "parent": null,
+      "material": "steel",
+      "transform": {
+        "translation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation": {
+          "convention": "identity"
+        }
+      },
+      "shape": {
+        "type": "cylinder",
+        "radius": 60.0,
+        "height": 1000.0
+      },
+      "verification": {
+        "cad_volume": 11309733.552923255,
+        "cad_area": 399610.5855366217,
+        "bbox": [
+          [
+            -60.0,
+            -60.0,
+            -500.0
+          ],
+          [
+            60.0,
+            60.0,
+            500.0
+          ]
+        ]
+      },
+      "extras": {
+        "freecad": {
+          "name": "Pipe",
+          "label": "Сталь — сплошной родитель R60 H1000",
+          "type_id": "Part::Cylinder"
+        }
+      }
+    },
+    {
+      "id": "Vacuum",
+      "name": "Вакуум — ребёнок R55 H990",
+      "parent": "Pipe",
+      "material": "vacuum",
+      "transform": {
+        "translation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation": {
+          "convention": "identity"
+        }
+      },
+      "shape": {
+        "type": "cylinder",
+        "radius": 55.0,
+        "height": 990.0
+      },
+      "verification": {
+        "cad_volume": 9408284.599338032,
+        "cad_area": 361126.07553014666,
+        "bbox": [
+          [
+            -55.0,
+            -55.0,
+            -495.0
+          ],
+          [
+            55.0,
+            55.0,
+            495.0
+          ]
+        ]
+      },
+      "extras": {
+        "freecad": {
+          "name": "Vacuum",
+          "label": "Вакуум — ребёнок R55 H990",
+          "type_id": "Part::Cylinder"
+        }
+      }
+    }
+  ]
+}

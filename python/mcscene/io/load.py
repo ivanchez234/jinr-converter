@@ -3,12 +3,13 @@
 Порядок шагов:
   1. читаем JSON (ошибка чтения -> E001, как в validate.py);
   2. validate.py: формат, структура по схеме, ссылки, геометрия;
-  3. если ошибок нет — вторая проверка структуры стандартным jsonschema
-     (страховка от пробелов в мини-валидаторе validate.py, код E901);
-  4. разбор в pydantic-модели Scene IR (код E902, если модель разошлась со схемой).
+  3. разбор в модель Scene IR, Scene.from_dict (код E902, если модель разошлась со схемой).
+
+Стандартный jsonschema во время работы не нужен: что мини-валидатор схемы в validate.py
+ловит всё, что ловит jsonschema, проверяют тесты (tests/contract/test_schema_crosscheck.py).
 
 Неизвестные поля без --strict validate.py считает предупреждением (W100):
-файл более новой версии, поле никто не читает. Поэтому перед шагами 3–4 такие
+файл более новой версии, поле никто не читает. Поэтому перед шагом 3 такие
 поля отбрасываются, как и обещает контракт.
 """
 from __future__ import annotations
@@ -17,11 +18,8 @@ import copy
 import json
 import os
 
-from jsonschema import Draft202012Validator
-from pydantic import ValidationError
-
 from ..diagnostics import Diagnostic, Diagnostics
-from ..model.scene import Scene
+from ..model import ModelError, Scene
 from .contract import load_contract_validator, load_schema
 
 # Геометрические ошибки контракта, которые можно обойти флагом --unsafe-skip-checks:
@@ -61,9 +59,6 @@ class SceneLoader:
             return None, list(diags)
 
         clean = drop_fields(doc, [d.where for d in diags if d.code == "W100"])
-        diags += self.crosscheck_schema(clean)
-        if diags.has_errors:
-            return None, list(diags)
         return self._parse(clean, diags), list(diags)
 
     # --- шаги ------------------------------------------------------------------------
@@ -86,25 +81,13 @@ class SceneLoader:
         return d
 
     @staticmethod
-    def crosscheck_schema(doc: dict) -> list[Diagnostic]:
-        """Стандартный jsonschema против уже проверенного validate.py документа."""
-        validator = Draft202012Validator(load_schema())
-        out = Diagnostics()
-        for err in sorted(validator.iter_errors(doc), key=lambda e: list(map(str, e.absolute_path))):
-            out.error("E901", "/" + "/".join(str(x) for x in err.absolute_path),
-                      "jsonschema нашёл ошибку, которую пропустил validate.py: %s "
-                      "(сообщите Никите, нужно поправить контракт)" % err.message)
-        return list(out)
-
-    @staticmethod
     def _parse(doc: dict, diags: Diagnostics) -> Scene | None:
         try:
-            return Scene.model_validate(doc)
-        except ValidationError as e:
-            for err in e.errors():
-                diags.error("E902", "/" + "/".join(str(x) for x in err["loc"]),
-                            "файл прошёл проверку контракта, но не разобрался в модели mcscene: %s "
-                            "(расхождение моделей со схемой — это ошибка mcscene)" % err["msg"])
+            return Scene.from_dict(doc)
+        except ModelError as e:
+            diags.error("E902", e.where,
+                        "файл прошёл проверку контракта, но не разобрался в модели mcscene: %s "
+                        "(расхождение модели со схемой — это ошибка mcscene)" % e.message)
             return None
 
 

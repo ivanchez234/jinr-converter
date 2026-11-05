@@ -1,0 +1,97 @@
+{
+  "format": "jinr-mc-scene",
+  "format_version": "0.1",
+  "min_reader_version": "0.1",
+  "source": {
+    "tool": "freecad-reference-samples",
+    "tool_version": "0.1.0",
+    "document": "01_box_rotated.FCStd"
+  },
+  "units": {
+    "length": "mm",
+    "angle": "deg",
+    "density": "g/cm3"
+  },
+  "world": {
+    "material": "air",
+    "margin_percent": 10
+  },
+  "materials": [
+    {
+      "id": "air",
+      "name": "Воздух",
+      "nist": "G4_AIR"
+    },
+    {
+      "id": "iron",
+      "name": "iron",
+      "nist": "G4_Fe"
+    }
+  ],
+  "bodies": [
+    {
+      "id": "Box",
+      "name": "Коробка 20×40×70 — X 30°, затем Z 45°",
+      "parent": null,
+      "material": "iron",
+      "transform": {
+        "translation": [
+          307.19798776871414,
+          -143.05585214498322,
+          120.31088913245534
+        ],
+        "rotation": {
+          "convention": "matrix_active",
+          "matrix": [
+            [
+              0.7071067811865476,
+              -0.6123724356957946,
+              0.35355339059327373
+            ],
+            [
+              0.7071067811865476,
+              0.6123724356957946,
+              -0.3535533905932737
+            ],
+            [
+              0.0,
+              0.49999999999999994,
+              0.8660254037844387
+            ]
+          ]
+        }
+      },
+      "shape": {
+        "type": "box",
+        "size": [
+          20.0,
+          40.0,
+          70.0
+        ]
+      },
+      "verification": {
+        "cad_volume": 56000.0,
+        "cad_area": 10000.0,
+        "bbox": [
+          [
+            275.5051025721682,
+            -174.74873734152916,
+            80.0
+          ],
+          [
+            338.8908729652601,
+            -111.36296694843726,
+            160.62177826491072
+          ]
+        ]
+      },
+      "extras": {
+        "freecad": {
+          "name": "Box",
+          "label": "Коробка 20×40×70 — X 30°, затем Z 45°",
+          "type_id": "Part::Box"
+        }
+      }
+    }
+  ]
+}

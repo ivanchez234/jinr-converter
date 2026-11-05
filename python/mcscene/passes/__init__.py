@@ -5,13 +5,15 @@
 
   base      — Pass: общий вход run(scene, diags);
   world     — WorldPass: размер мира;
-  materials — MaterialPass: какие материалы нужны и можно ли их построить.
+  materials — MaterialPass: какие материалы нужны и можно ли их построить;
+  probes    — ProbePass: пробные точки каждого тела (у тел с детьми — там, где детей нет).
 
 Имена объёмов зависят от цели (у Geant4 одни правила, у FLUKA — имена до 8 символов),
 поэтому они у цели: backends/geant4/naming.py. Повороты и габариты — объекты в geometry/.
 """
 from .base import Pass
 from .materials import MaterialPass, MaterialPlan
+from .probes import ProbePass
 from .world import WorldPass, WorldPlan
 
-__all__ = ["MaterialPass", "MaterialPlan", "Pass", "WorldPass", "WorldPlan"]
+__all__ = ["MaterialPass", "MaterialPlan", "Pass", "ProbePass", "WorldPass", "WorldPlan"]

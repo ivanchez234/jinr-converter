@@ -1,0 +1,31 @@
+{
+  "format": "jinr-mc-scene",
+  "format_version": "0.1",
+  "source": {"tool": "hand-written", "document": "tests/scenes/cylinder_rot.json"},
+  "units": {"length": "mm", "angle": "deg", "density": "g/cm3"},
+  "world": {"material": "air", "margin_percent": 10},
+  "materials": [
+    {"id": "air", "name": "Воздух", "nist": "G4_AIR"},
+    {"id": "iron", "name": "Железо", "nist": "G4_Fe"}
+  ],
+  "bodies": [
+    {
+      "id": "rod",
+      "name": "Стержень R30 H120, поворот 20° вокруг x, 50° вокруг y, 30° вокруг z",
+      "parent": null,
+      "material": "iron",
+      "transform": {
+        "translation": [-100, 50, 20],
+        "rotation": {
+          "convention": "euler_xyz_extrinsic_deg",
+          "angles": [20, 50, 30]
+        }
+      },
+      "shape": {"type": "cylinder", "radius": 30, "height": 120},
+      "verification": {
+        "cad_volume": 339292.00658769766,
+        "bbox": [[-165.886166, 16.237474, -40.150378], [-34.113834, 83.762526, 80.150378]]
+      }
+    }
+  ]
+}

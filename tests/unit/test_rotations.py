@@ -112,7 +112,7 @@ def test_every_matrix_passes_g4scene_check(path):
 
 def test_rotated_box_scene_matrix():
     with open(TEST_SCENES / "rotated_box.json", encoding="utf-8") as f:
-        scene = Scene.model_validate(json.load(f))
+        scene = Scene.from_dict(json.load(f))
     assert from_json(scene.bodies[0].transform.rotation) == ((0, -1, 0), (1, 0, 0), (0, 0, 1))
 
 
@@ -141,7 +141,7 @@ def _shape_pairs(raw, shape, where):
 def _all_transforms(path):
     with open(path, encoding="utf-8") as f:
         doc = json.load(f)
-    scene = Scene.model_validate(doc)
+    scene = Scene.from_dict(doc)
     for raw_b, b in zip(doc["bodies"], scene.bodies):
         yield "%s/transform" % b.id, raw_b["transform"], b.transform
         yield from _shape_pairs(raw_b["shape"], b.shape, "%s/shape" % b.id)

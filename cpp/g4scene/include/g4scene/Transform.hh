@@ -24,11 +24,17 @@
 class G4LogicalVolume;
 class G4VPhysicalVolume;
 
-namespace scene {
+namespace g4scene {
 
 using Mat3 = std::array<std::array<double, 3>, 3>;   // по строкам, как в JSON
+using Row3 = std::array<double, 3>;
 
 inline constexpr Mat3 kIdentity{{{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}};
+
+// Матрица по строкам, как в JSON: g4scene::Rows({0, 1, 0}, {0, 0, -1}, {-1, 0, 0}).
+// Каждая скобка — одна строка; столбцы — куда смотрят оси x, y, z тела в системе
+// родителя. То же, что Mat3{{{…}, {…}, {…}}}, только без тройных скобок.
+constexpr Mat3 Rows(const Row3& r0, const Row3& r1, const Row3& r2) { return Mat3{{r0, r1, r2}}; }
 
 // Допуск проверки поворота. Генератор доводит матрицы до ортонормированных
 // с точностью ~1e-15, так что 1e-9 — с большим запасом.
@@ -53,4 +59,4 @@ G4VPhysicalVolume* Place(G4LogicalVolume* lv, G4LogicalVolume* mother,
                          const G4String& name, const G4Transform3D& t,
                          bool checkOverlaps = false);
 
-}  // namespace scene
+}  // namespace g4scene

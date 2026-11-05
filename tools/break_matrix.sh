@@ -51,6 +51,7 @@ log="build/break/$name.log"
 mkdir -p build/break
 : > "$log"
 
+rm -rf -- "${out:?}/user"          # user/ — свежий, из текущего шаблона
 if ! mcscene generate "$scene" -o "$out" --force >>"$log" 2>&1; then
   echo "generate не прошёл (см. $log)"; exit 2
 fi

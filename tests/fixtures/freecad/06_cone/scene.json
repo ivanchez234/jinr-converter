@@ -1,0 +1,95 @@
+{
+  "format": "jinr-mc-scene",
+  "format_version": "0.1",
+  "min_reader_version": "0.1",
+  "source": {
+    "tool": "freecad-reference-samples",
+    "tool_version": "0.1.0",
+    "document": "05_cone.FCStd"
+  },
+  "units": {
+    "length": "mm",
+    "angle": "deg",
+    "density": "g/cm3"
+  },
+  "world": {
+    "material": "air",
+    "margin_percent": 10
+  },
+  "materials": [
+    {
+      "id": "air",
+      "name": "Воздух",
+      "nist": "G4_AIR"
+    },
+    {
+      "id": "iron",
+      "name": "iron",
+      "nist": "G4_Fe"
+    }
+  ],
+  "bodies": [
+    {
+      "id": "Cone",
+      "name": "Конус R40→0 H100 — X20°, Z35°",
+      "parent": null,
+      "material": "iron",
+      "transform": {
+        "translation": [
+          9.808734748450554,
+          -14.008324979661774,
+          46.984631039295415
+        ],
+        "rotation": {
+          "convention": "matrix_active",
+          "matrix": [
+            [
+              0.8191520442889918,
+              -0.5389855446957563,
+              0.19617469496901108
+            ],
+            [
+              0.573576436351046,
+              0.7697511313200572,
+              -0.2801664995932355
+            ],
+            [
+              0.0,
+              0.34202014332566866,
+              0.9396926207859084
+            ]
+          ]
+        }
+      },
+      "shape": {
+        "type": "cone",
+        "radius_bottom": 40.0,
+        "radius_top": 0.0,
+        "height": 100.0
+      },
+      "verification": {
+        "cad_volume": 167551.60819145566,
+        "cad_area": 18560.94360291491,
+        "bbox": [
+          [
+            -39.222758476248266,
+            -38.398056878038474,
+            -13.680805733026746
+          ],
+          [
+            39.222758476248266,
+            38.398056878038474,
+            93.96926207859084
+          ]
+        ]
+      },
+      "extras": {
+        "freecad": {
+          "name": "Cone",
+          "label": "Конус R40→0 H100 — X20°, Z35°",
+          "type_id": "Part::Cone"
+        }
+      }
+    }
+  ]
+}

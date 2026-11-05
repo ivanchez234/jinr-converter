@@ -1,0 +1,51 @@
+{
+  "format": "jinr-mc-scene",
+  "format_version": "0.1",
+  "source": {"tool": "hand-written", "document": "tests/scenes/cones.json"},
+  "units": {"length": "mm", "angle": "deg", "density": "g/cm3"},
+  "world": {"material": "air", "margin_percent": 10},
+  "materials": [
+    {"id": "air", "name": "Воздух", "nist": "G4_AIR"},
+    {"id": "aluminium", "name": "Алюминий", "nist": "G4_Al"},
+    {"id": "copper", "name": "Медь", "nist": "G4_Cu"}
+  ],
+  "bodies": [
+    {
+      "id": "frustum",
+      "name": "Алюминиевый усечённый конус R50→20 H120, 30° вокруг x, затем 45° вокруг z",
+      "parent": null,
+      "material": "aluminium",
+      "transform": {
+        "translation": [-120, 0, 0],
+        "rotation": {
+          "convention": "euler_xyz_extrinsic_deg",
+          "angles": [30, 0, 45]
+        }
+      },
+      "shape": {"type": "cone", "radius_bottom": 50, "radius_top": 20, "height": 120},
+      "verification": {
+        "cad_volume": 490088.4539600077,
+        "bbox": [[-187.983921, -39.92149, -76.961524], [-80.07851, 67.983921, 61.961524]]
+      }
+    },
+    {
+      "id": "funnel",
+      "name": "Медная воронка: низ R60/50, верх R30/20, H100, ось вдоль x (90° вокруг y)",
+      "parent": null,
+      "material": "copper",
+      "transform": {
+        "translation": [100, 0, 0],
+        "rotation": {
+          "convention": "euler_xyz_extrinsic_deg",
+          "angles": [0, 90, 0]
+        }
+      },
+      "shape": {"type": "cone", "radius_bottom": 60, "radius_top": 30, "height": 100,
+                "inner_radius_bottom": 50, "inner_radius_top": 20},
+      "verification": {
+        "cad_volume": 251327.41228718346,
+        "bbox": [[50.0, -60.0, -60.0], [150.0, 60.0, 60.0]]
+      }
+    }
+  ]
+}

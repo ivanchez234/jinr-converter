@@ -32,7 +32,7 @@ def test_generate_returns_result_and_prints_nothing(tmp_path, capsys):
 
 @pytest.mark.parametrize("scene, status, code", [
     (BAD, Status.INVALID, "E220"),                                          # нарушает контракт
-    (CONTRACT_V0_1 / "examples" / "02_nested_pipe.json", Status.UNSUPPORTED, "E301"),  # цилиндры — этап 3
+    (CONTRACT_V0_1 / "examples" / "02_nested_pipe.json", Status.UNSUPPORTED, "E310"),  # свой состав — этап 4
 ], ids=["invalid", "unsupported"])
 def test_problems_come_back_as_status_not_exceptions(tmp_path, capsys, scene, status, code):
     r = Converter("geant4").generate(scene, tmp_path / "out")

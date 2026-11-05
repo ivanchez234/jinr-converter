@@ -4,7 +4,7 @@
 
 #include "G4Exception.hh"
 
-namespace scene {
+namespace g4scene {
 
 namespace {
 
@@ -24,15 +24,15 @@ T* Find(const std::map<std::string, T*>& m, const G4String& id) {
 }  // namespace
 
 void Registry::AddMaterial(const G4String& id, G4Material* material) {
-  if (material == nullptr) Fatal("scene::Registry::AddMaterial", "материал '" + id + "' = nullptr");
+  if (material == nullptr) Fatal("g4scene::Registry::AddMaterial", "материал '" + id + "' = nullptr");
   if (!fMaterials.emplace(id, material).second)
-    Fatal("scene::Registry::AddMaterial", "материал '" + id + "' добавлен дважды");
+    Fatal("g4scene::Registry::AddMaterial", "материал '" + id + "' добавлен дважды");
 }
 
 void Registry::AddVolume(const G4String& id, G4LogicalVolume* volume) {
-  if (volume == nullptr) Fatal("scene::Registry::AddVolume", "объём '" + id + "' = nullptr");
+  if (volume == nullptr) Fatal("g4scene::Registry::AddVolume", "объём '" + id + "' = nullptr");
   if (!fVolumes.emplace(id, volume).second)
-    Fatal("scene::Registry::AddVolume", "объём '" + id + "' добавлен дважды");
+    Fatal("g4scene::Registry::AddVolume", "объём '" + id + "' добавлен дважды");
 }
 
 G4Material* Registry::FindMaterial(const G4String& id) const { return Find(fMaterials, id); }
@@ -41,14 +41,14 @@ G4LogicalVolume* Registry::FindVolume(const G4String& id) const { return Find(fV
 
 G4Material* Registry::GetMaterial(const G4String& id) const {
   G4Material* m = FindMaterial(id);
-  if (m == nullptr) Fatal("scene::Registry::GetMaterial", "материал '" + id + "' не найден");
+  if (m == nullptr) Fatal("g4scene::Registry::GetMaterial", "материал '" + id + "' не найден");
   return m;
 }
 
 G4LogicalVolume* Registry::GetVolume(const G4String& id) const {
   G4LogicalVolume* v = FindVolume(id);
-  if (v == nullptr) Fatal("scene::Registry::GetVolume", "объём '" + id + "' не найден");
+  if (v == nullptr) Fatal("g4scene::Registry::GetVolume", "объём '" + id + "' не найден");
   return v;
 }
 
-}  // namespace scene
+}  // namespace g4scene

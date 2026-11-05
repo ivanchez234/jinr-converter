@@ -1,0 +1,94 @@
+{
+  "format": "jinr-mc-scene",
+  "format_version": "0.1",
+  "min_reader_version": "0.1",
+  "source": {
+    "tool": "freecad-reference-samples",
+    "tool_version": "0.1.0",
+    "document": "02_cylinder_y90.FCStd"
+  },
+  "units": {
+    "length": "mm",
+    "angle": "deg",
+    "density": "g/cm3"
+  },
+  "world": {
+    "material": "air",
+    "margin_percent": 10
+  },
+  "materials": [
+    {
+      "id": "air",
+      "name": "Воздух",
+      "nist": "G4_AIR"
+    },
+    {
+      "id": "iron",
+      "name": "iron",
+      "nist": "G4_Fe"
+    }
+  ],
+  "bodies": [
+    {
+      "id": "Cylinder",
+      "name": "Цилиндр R40 H200 — Y 90°",
+      "parent": null,
+      "material": "iron",
+      "transform": {
+        "translation": [
+          100.0,
+          0.0,
+          2.220446049250313e-14
+        ],
+        "rotation": {
+          "convention": "matrix_active",
+          "matrix": [
+            [
+              0.0,
+              0.0,
+              1.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              -1.0,
+              0.0,
+              0.0
+            ]
+          ]
+        }
+      },
+      "shape": {
+        "type": "cylinder",
+        "radius": 40.0,
+        "height": 200.0
+      },
+      "verification": {
+        "cad_volume": 1005309.6491487338,
+        "cad_area": 60318.57894892403,
+        "bbox": [
+          [
+            -8.881784197001252e-15,
+            -40.0,
+            -40.0
+          ],
+          [
+            200.0,
+            40.0,
+            40.00000000000004
+          ]
+        ]
+      },
+      "extras": {
+        "freecad": {
+          "name": "Cylinder",
+          "label": "Цилиндр R40 H200 — Y 90°",
+          "type_id": "Part::Cylinder"
+        }
+      }
+    }
+  ]
+}

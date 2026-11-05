@@ -4,7 +4,7 @@
 #include "G4Material.hh"
 #include "G4NistManager.hh"
 
-namespace scene {
+namespace g4scene {
 
 G4Material* Nist(const G4String& name) {
   G4Material* m = G4NistManager::Instance()->FindOrBuildMaterial(name);
@@ -12,9 +12,9 @@ G4Material* Nist(const G4String& name) {
     G4ExceptionDescription ed;
     ed << "материала '" << name << "' нет в базе NIST Geant4 "
        << "(список имён: /material/nist/listMaterials all)";
-    G4Exception("scene::Nist", "g4scene003", FatalException, ed);
+    G4Exception("g4scene::Nist", "g4scene003", FatalException, ed);
   }
   return m;
 }
 
-}  // namespace scene
+}  // namespace g4scene

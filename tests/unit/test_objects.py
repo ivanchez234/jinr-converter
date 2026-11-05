@@ -6,7 +6,8 @@ from mcscene.backends.geant4.capabilities import PLANNED, SHAPES
 from mcscene.backends.geant4.solids import SOLIDS, BoxSolid, SolidEmitter
 from mcscene.diagnostics import Diagnostic, Diagnostics
 from mcscene.io.load import SceneLoader, load_and_validate
-from mcscene.model import Box, Cylinder
+from mcscene.model import Box, Cone, Cylinder, Sphere, Torus
+from mcscene.model.scene import Boolean, Mesh, ShapeBase
 from mcscene.paths import CONTRACT_V0_1, TEST_SCENES
 
 
@@ -31,8 +32,12 @@ def test_box_knows_its_geometry():
     assert all(abs(p[i]) <= 0.4 * box.size[i] for p in pts for i in range(3))   # все внутри
 
 
-def test_other_shapes_get_probe_points_on_stage_3():
-    assert Cylinder(type="cylinder", radius=40, height=200).probe_points() == []
+def test_every_primitive_has_probe_points():
+    # этап 3: пробные точки есть у всех примитивов (test_primitives.py); у булевых и мешей — этапы 4 и 5
+    for cls in (Box, Cylinder, Cone, Sphere, Torus):
+        assert cls.probe_points is not ShapeBase.probe_points, cls.__name__
+    for cls in (Boolean, Mesh):
+        assert cls.probe_points is ShapeBase.probe_points, cls.__name__
 
 
 def test_every_solid_class_is_legal_in_the_table():

@@ -1,0 +1,44 @@
+{
+  "format": "jinr-mc-scene",
+  "format_version": "0.1",
+  "source": {"tool": "hand-written", "document": "tests/scenes/torus_ball.json"},
+  "units": {"length": "mm", "angle": "deg", "density": "g/cm3"},
+  "world": {"material": "air", "margin_percent": 10},
+  "materials": [
+    {"id": "air", "name": "Воздух", "nist": "G4_AIR"},
+    {"id": "copper", "name": "Медь", "nist": "G4_Cu"},
+    {"id": "lead", "name": "Свинец", "nist": "G4_Pb"}
+  ],
+  "bodies": [
+    {
+      "id": "ring",
+      "name": "Медный тор R100 r20, 30° вокруг x, затем 45° вокруг y",
+      "parent": null,
+      "material": "copper",
+      "transform": {
+        "translation": [20, -10, 30],
+        "rotation": {
+          "convention": "euler_xyz_extrinsic_deg",
+          "angles": [30, 45, 0]
+        }
+      },
+      "shape": {"type": "torus", "major_radius": 100, "minor_radius": 20},
+      "verification": {
+        "cad_volume": 789568.3520871487,
+        "bbox": [[-79.056942, -116.60254, -69.056942], [119.056942, 96.60254, 129.056942]]
+      }
+    },
+    {
+      "id": "ball",
+      "name": "Свинцовый шар R50 в дырке тора",
+      "parent": null,
+      "material": "lead",
+      "transform": {"translation": [20, -10, 30], "rotation": {"convention": "identity"}},
+      "shape": {"type": "sphere", "radius": 50},
+      "verification": {
+        "cad_volume": 523598.7755982988,
+        "bbox": [[-30.0, -60.0, -20.0], [70.0, 40.0, 80.0]]
+      }
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 """mcscene generate: какие файлы пишутся, что в них, детерминизм, --force и user/."""
 import json
+import re
 
 import pytest
 
@@ -50,8 +51,8 @@ def test_box02_project(tmp_path, capsys):
     assert 'new G4Box("Box", 10*mm, 20*mm, 35*mm)' in cc
     assert 'new G4Box("world", 352*mm, 165*mm, 165*mm)' in cc
     assert "G4ThreeVector(310*mm, -130*mm, 115*mm)" in cc
-    assert 'fReg.AddMaterial("iron", scene::Nist("G4_Fe"));' in cc
-    assert "scene::kIdentity" in cc                         # единичная матрица -> kIdentity
+    assert 'fReg.AddMaterial("iron", g4scene::Nist("G4_Fe"));' in cc
+    assert "g4scene::kIdentity" in cc                         # единичная матрица -> kIdentity
     assert "BuildBody_Box();" in cc
 
     hh = (out / "generated/GeneratedDetectorConstruction.hh").read_text("utf-8")
@@ -77,8 +78,34 @@ def test_rotation_is_printed_as_matrix(tmp_path):
     assert gen(TEST_SCENES / "rotated_box.json", out) == 0
     cc = (out / "generated/GeneratedDetectorConstruction.cc").read_text("utf-8")
     assert "углы X, Y, Z = 0°, 0°, 90°" in cc
-    assert "const scene::Mat3 rotation{{{0, -1, 0}," in cc
-    assert "scene::Transform(rotation, G4ThreeVector(300*mm, -150*mm, 80*mm))" in cc
+    assert "// оси тела в системе родителя (столбцы матрицы): x -> +y, y -> -x, z -> +z" in cc
+    assert ("  const g4scene::Mat3 rotation = g4scene::Rows({0, -1, 0},\n"
+            "                                               {1,  0, 0},\n"
+            "                                               {0,  0, 1});\n") in cc
+    assert "g4scene::Transform(rotation, G4ThreeVector(300*mm, -150*mm, 80*mm))" in cc
+
+
+ROTATED = [TEST_SCENES / "rotated_box.json", TEST_SCENES / "rotation_trap.json",
+           TEST_SCENES / "box_rot30x_45z.json", TEST_SCENES / "box_rot30x_45z_matrix.json",
+           FREECAD_FIXTURES / "02_box_20x40x70" / "scene.json"]
+
+
+@pytest.mark.parametrize("path", ROTATED, ids=lambda p: p.parent.name if p.name == "scene.json" else p.name)
+def test_matrix_in_cpp_is_exactly_the_plan(tmp_path, path):
+    # Матрицы читаются из сгенерированного C++ обратно в числа и сравниваются с планом
+    # точно, без допуска: выравнивание пробелами и подписи не должны менять ни одной цифры.
+    from mcscene.backends.geant4.plan import Geant4Planner
+    from mcscene.model import Scene
+
+    out = tmp_path / "rot"
+    assert gen(path, out) == 0
+    cc = (out / "generated/GeneratedDetectorConstruction.cc").read_text("utf-8")
+    got = [[float(x) for x in re.findall(r"-?\d+(?:\.\d+)?(?:e[-+]?\d+)?", block)]
+           for block in re.findall(r"g4scene::Rows\((.*?)\);", cc, flags=re.S)]
+    with open(path, encoding="utf-8") as f:
+        plan = Geant4Planner(Scene.from_dict(json.load(f)), path).build().plan
+    want = [[x for row in b.matrix for x in row] for b in plan.bodies if b.rotated]
+    assert got == want and len(want) >= 1
 
 
 def test_child_is_placed_in_parent(tmp_path):
@@ -86,7 +113,7 @@ def test_child_is_placed_in_parent(tmp_path):
     assert gen(TEST_SCENES / "nested_boxes.json", out) == 0
     cc = (out / "generated/GeneratedDetectorConstruction.cc").read_text("utf-8")
     assert cc.index("BuildBody_outer();") < cc.index("BuildBody_inner();")
-    assert 'scene::Place(lv, LV("outer"), "inner",' in cc
+    assert 'g4scene::Place(lv, LV("outer"), "inner",' in cc
 
 
 def test_app_and_vis_macro(tmp_path):
@@ -113,7 +140,7 @@ def test_app_and_vis_macro(tmp_path):
 def test_same_material_same_colour(scene, box, tmp_path):
     s = scene(box("a", (1, 1, 1), (-5, 0, 0)), box("b", (1, 1, 1), (5, 0, 0)))
     path = tmp_path / "two.json"
-    path.write_text(s.model_dump_json(exclude_unset=True), encoding="utf-8")
+    path.write_text(json.dumps(s.to_dict(), ensure_ascii=False), encoding="utf-8")
     assert gen(path, tmp_path / "out") == 0
     vis = (tmp_path / "out/app/vis.mac").read_text("utf-8")
     assert "/vis/geometry/set/colour a 0 0.12 0.47 0.71 1" in vis
@@ -176,7 +203,7 @@ def test_unsupported_scene_writes_nothing(tmp_path, capsys):
     assert gen(CONTRACT_V0_1 / "examples" / "02_nested_pipe.json", out) == 1
     assert not out.exists()
     text = capsys.readouterr().out
-    assert "E301" in text and "файлы не записаны" in text
+    assert "E310" in text and "файлы не записаны" in text
 
 
 def test_invalid_scene_writes_nothing(tmp_path):
@@ -261,3 +288,55 @@ def test_unsafe_flag_does_not_skip_broken_references(tmp_path, mutate, code):
 def test_unsafe_flag_does_not_skip_unsupported_shapes(tmp_path):
     assert gen(CONTRACT_V0_1 / "examples" / "02_nested_pipe.json", tmp_path / "p",
                "--unsafe-skip-checks") == 1
+
+
+@pytest.mark.parametrize("scene, volume", [
+    (TEST_SCENES / "rotation_trap.json", "M"),           # детектор — во вложенном маркере, не в A
+    (TEST_SCENES / "nested_boxes.json", "inner"),
+    (FREECAD_FIXTURES / "01_kub" / "scene.json", "Body"),
+], ids=["trap", "nested", "kub"])
+def test_user_file_has_detector_example_switched_off(tmp_path, scene, volume):
+    # задача Д, шаг 1: пример чувствительного объёма в user/, выключен (0); e2e.sh включает его
+    # и проверяет, что он собирается и детектор появляется в /hits/list
+    out = tmp_path / "det"
+    assert gen(scene, out) == 0
+    user = (out / "user/DetectorConstruction.hh").read_text("utf-8")
+    assert "\n#define MCSCENE_EXAMPLE_DETECTOR 0\n" in user
+    assert 'new G4MultiFunctionalDetector("dose_%s")' % volume in user
+    assert 'SetSensitiveDetector(LV("%s"), detector);' % volume in user
+    assert user.count("#if MCSCENE_EXAMPLE_DETECTOR") == 2          # include и метод — оба под #if
+
+
+@pytest.mark.parametrize("scene_name, ns", [
+    ("rotation_trap", "rotation_trap"),
+    ("kub", "kub"),
+    ("02_box_20x40x70", "scene_02_box_20x40x70"),     # имя C++ не начинается с цифры
+    ("class", "scene_class"),                         # ключевое слово C++
+    ("g4scene", "scene_g4scene"),                     # занято библиотекой
+    ("G4Box", "scene_G4Box"),                         # столкнулось бы с классом Geant4
+    ("a__b_", "a_b"),                                 # двойное подчёркивание зарезервировано
+    ("___", "scene"),
+])
+def test_namespace_from_scene_name(scene_name, ns):
+    from mcscene.backends.geant4.naming import Geant4Naming
+    assert Geant4Naming.cpp_namespace(scene_name) == ns
+
+
+def test_scene_classes_are_in_scene_namespace(tmp_path):
+    # пространство имён по имени сцены: в проекте физика свой DetectorConstruction не помешает
+    out = tmp_path / "ns"
+    assert gen(FREECAD_FIXTURES / "02_box_20x40x70" / "scene.json", out) == 0
+    ns = "scene_02_box_20x40x70"
+    hh = (out / "generated/GeneratedDetectorConstruction.hh").read_text("utf-8")
+    cc = (out / "generated/GeneratedDetectorConstruction.cc").read_text("utf-8")
+    user = (out / "user/DetectorConstruction.hh").read_text("utf-8")
+    assert "\nnamespace %s {\n\nclass GeneratedDetectorConstruction " % ns in hh
+    assert hh.endswith("};\n\n}  // namespace %s\n" % ns)
+    assert "\nnamespace %s {\n\nG4VPhysicalVolume* GeneratedDetectorConstruction::Construct()" % ns in cc
+    assert cc.endswith("}  // namespace %s\n" % ns)
+    assert "\nnamespace %s {" % ns in user and user.endswith("}  // namespace %s\n" % ns)
+    assert "new %s::DetectorConstruction" % ns in (out / "app/main.cc").read_text("utf-8")
+    assert "%s::GeneratedDetectorConstruction construction;" % ns in (out / "harness/check_geometry.cc").read_text("utf-8")
+    assert json.loads((out / "report.json").read_text("utf-8"))["namespace"] == ns
+    # библиотека g4scene — в своём пространстве имён, а не в общем «scene»
+    assert "scene::" not in cc.replace("g4scene::", "")

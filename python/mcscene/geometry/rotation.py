@@ -156,6 +156,12 @@ class Rigid:
         q = self.rotation.apply(p)
         return (q[0] + self.t[0], q[1] + self.t[1], q[2] + self.t[2])
 
+    def inverse(self) -> "Rigid":
+        """Обратное преобразование: p = R·q + t  ->  q = Rᵀ·(p − t) = Rᵀ·p − Rᵀ·t."""
+        rt = self.rotation.transposed()
+        back = rt.apply(self.t)
+        return Rigid(rt, (-back[0], -back[1], -back[2]))
+
     def then_child(self, child: "Rigid") -> "Rigid":
         """Преобразование «ребёнок -> мир», если self — «родитель -> мир».
 

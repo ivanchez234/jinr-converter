@@ -18,15 +18,17 @@ HALL = CONTRACT_V0_1 / "examples" / "05_hall_all_types.json"
 
 def load(path):
     with open(path, encoding="utf-8") as f:
-        return Scene.model_validate(json.load(f))
+        return Scene.from_dict(json.load(f))
 
 
 def check(scene):
     return Geant4Backend().check(scene)
 
 
-def test_stage1_supports_only_box():
-    assert [t for t, c in SHAPES.items() if c.action is Action.LEGAL] == ["box"]
+def test_supported_shapes_now():
+    # этап 3: все примитивы; булевы — этап 4, меши — этап 5
+    assert [t for t, c in SHAPES.items() if c.action is Action.LEGAL] == ["box", "cylinder", "cone", "sphere", "torus"]
+    assert "этап 4" in SHAPES["boolean"].reason and "этап 5" in SHAPES["mesh"].reason
     assert set(SHAPES) == {"box", "cylinder", "cone", "sphere", "torus", "boolean", "mesh"}
 
 
@@ -39,7 +41,8 @@ def test_box_scene_is_legal():
 def test_unsupported_shapes_say_which_stage():
     rows, diags = check(load(HALL))
     got = {r.body_id: (r.action, r.note) for r in rows}
-    assert got["pipe"][0] is Action.ERROR and "этап 3" in got["pipe"][1]     # номера — по плану v3
+    assert got["pipe"][0] is Action.LEGAL                                  # цилиндр — уже умеем
+    assert got["collimator"][0] is Action.LEGAL                            # полый конус — тоже
     assert "этап 4" in got["wall_b"][1]
     assert "этап 5" in got["magnet_yoke"][1]
     assert {d.code for d in diags} == {"E301"}
@@ -57,7 +60,7 @@ def test_cli_check_hall(capsys):
     assert main(["check", str(HALL)]) == 1
     out = capsys.readouterr().out
     assert "E301" in out and "E310" in out
-    assert "итог: 5 тел, 6 ошибок, 0 предупреждений -> генерировать нельзя" in out
+    assert "итог: 5 тел, 3 ошибки, 0 предупреждений -> генерировать нельзя" in out
 
 
 def test_cli_check_bad_contract_file(capsys):

@@ -42,13 +42,13 @@ bool Near(const G4Point3D& p, double x, double y, double z, double tol = 1e-9) {
 
 // Произвольная правильная матрица без симметрий: R = Rz(70°)·Ry(-45°)·Rx(30°),
 // как euler_xyz_extrinsic_deg [30, -45, 70] в контракте.
-scene::Mat3 ArbitraryRotation() {
+g4scene::Mat3 ArbitraryRotation() {
   const double a = 30 * deg, b = -45 * deg, c = 70 * deg;
-  const scene::Mat3 rx{{{1, 0, 0}, {0, std::cos(a), -std::sin(a)}, {0, std::sin(a), std::cos(a)}}};
-  const scene::Mat3 ry{{{std::cos(b), 0, std::sin(b)}, {0, 1, 0}, {-std::sin(b), 0, std::cos(b)}}};
-  const scene::Mat3 rz{{{std::cos(c), -std::sin(c), 0}, {std::sin(c), std::cos(c), 0}, {0, 0, 1}}};
-  auto mul = [](const scene::Mat3& p, const scene::Mat3& q) {
-    scene::Mat3 r{};
+  const g4scene::Mat3 rx{{{1, 0, 0}, {0, std::cos(a), -std::sin(a)}, {0, std::sin(a), std::cos(a)}}};
+  const g4scene::Mat3 ry{{{std::cos(b), 0, std::sin(b)}, {0, 1, 0}, {-std::sin(b), 0, std::cos(b)}}};
+  const g4scene::Mat3 rz{{{std::cos(c), -std::sin(c), 0}, {std::sin(c), std::cos(c), 0}, {0, 0, 1}}};
+  auto mul = [](const g4scene::Mat3& p, const g4scene::Mat3& q) {
+    g4scene::Mat3 r{};
     for (int i = 0; i < 3; ++i)
       for (int j = 0; j < 3; ++j)
         for (int k = 0; k < 3; ++k) r[i][j] += p[i][k] * q[k][j];
@@ -57,12 +57,12 @@ scene::Mat3 ArbitraryRotation() {
   return mul(rz, mul(ry, rx));
 }
 
-const scene::Mat3 kRz90{{{0, -1, 0}, {1, 0, 0}, {0, 0, 1}}};
+const g4scene::Mat3 kRz90{{{0, -1, 0}, {1, 0, 0}, {0, 0, 1}}};
 
 // --- повороты -------------------------------------------------------------------
 
 void TestRz90TurnsXIntoY() {
-  const G4Transform3D t = scene::Transform(kRz90, G4ThreeVector());
+  const G4Transform3D t = g4scene::Transform(kRz90, G4ThreeVector());
   CHECK(Near(t * G4Point3D(1, 0, 0), 0, 1, 0));
   CHECK(Near(t * G4Point3D(0, 1, 0), -1, 0, 0));
   CHECK(Near(t * G4Point3D(0, 0, 1), 0, 0, 1));
@@ -71,42 +71,60 @@ void TestRz90TurnsXIntoY() {
 void TestRotateThenShift() {
   // сначала поворот, потом сдвиг: (1,0,0) -> (0,1,0) -> (100,1,0).
   // Если бы сдвиг шёл первым, получилось бы (0,101,0).
-  const G4Transform3D t = scene::Transform(kRz90, G4ThreeVector(100, 0, 0));
+  const G4Transform3D t = g4scene::Transform(kRz90, G4ThreeVector(100, 0, 0));
   CHECK(Near(t * G4Point3D(1, 0, 0), 100, 1, 0));
   CHECK(Near(t * G4Point3D(0, 0, 0), 100, 0, 0));
 }
 
 void TestElementsAreKeptAsIs() {
-  const scene::Mat3 m = ArbitraryRotation();
-  const G4RotationMatrix r = scene::ToRotation(m);
+  const g4scene::Mat3 m = ArbitraryRotation();
+  const G4RotationMatrix r = g4scene::ToRotation(m);
   for (int i = 0; i < 3; ++i)
     for (int j = 0; j < 3; ++j) CHECK(Near(r(i, j), m[i][j]));
 
   // и точка переводится как m·p + t
   const G4ThreeVector shift(10, -20, 30);
-  const G4Transform3D t = scene::Transform(m, shift);
+  const G4Transform3D t = g4scene::Transform(m, shift);
   const double p[3] = {1.5, -2.0, 7.0};
   double q[3];
   for (int i = 0; i < 3; ++i) q[i] = m[i][0] * p[0] + m[i][1] * p[1] + m[i][2] * p[2] + shift[i];
   CHECK(Near(t * G4Point3D(p[0], p[1], p[2]), q[0], q[1], q[2]));
 }
 
+void TestRowsKeepsRowOrder() {
+  // Rows — та же матрица по строкам: первая скобка — первая строка
+  constexpr g4scene::Mat3 m = g4scene::Rows({1, 2, 3}, {4, 5, 6}, {7, 8, 9});
+  static_assert(m[0][1] == 2 && m[1][0] == 4 && m[2][2] == 9, "Rows: строки не на своих местах");
+  CHECK(m[0][2] == 3 && m[2][0] == 7);
+
+  // так генератор пишет поворот на 90° вокруг z: столбцы выровнены пробелами
+  const g4scene::Mat3 rz = g4scene::Rows({0, -1, 0},
+                                         {1,  0, 0},
+                                         {0,  0, 1});
+  for (int i = 0; i < 3; ++i)
+    for (int j = 0; j < 3; ++j) CHECK(rz[i][j] == kRz90[i][j]);
+
+  // и Transform понимает её так же: ось x тела смотрит вдоль +y родителя
+  const G4Transform3D t = g4scene::Transform(rz, G4ThreeVector());
+  CHECK(Near(t * G4Point3D(1, 0, 0), 0, 1, 0));
+}
+
 void TestRotationProblem() {
-  CHECK(scene::RotationProblem(scene::kIdentity).empty());
-  CHECK(scene::RotationProblem(kRz90).empty());
-  CHECK(scene::RotationProblem(ArbitraryRotation()).empty());
+  CHECK(g4scene::RotationProblem(g4scene::kIdentity).empty());
+  CHECK(g4scene::RotationProblem(kRz90).empty());
+  CHECK(g4scene::RotationProblem(ArbitraryRotation()).empty());
 
-  const scene::Mat3 mirror{{{1, 0, 0}, {0, 1, 0}, {0, 0, -1}}};               // det = -1
-  CHECK(scene::RotationProblem(mirror).find("det") != std::string::npos);
+  const g4scene::Mat3 mirror{{{1, 0, 0}, {0, 1, 0}, {0, 0, -1}}};               // det = -1
+  CHECK(g4scene::RotationProblem(mirror).find("det") != std::string::npos);
 
-  const scene::Mat3 scaled{{{2, 0, 0}, {0, 1, 0}, {0, 0, 1}}};                // масштаб
-  CHECK(scene::RotationProblem(scaled).find("ортонорм") != std::string::npos);
+  const g4scene::Mat3 scaled{{{2, 0, 0}, {0, 1, 0}, {0, 0, 1}}};                // масштаб
+  CHECK(g4scene::RotationProblem(scaled).find("ортонорм") != std::string::npos);
 
-  const scene::Mat3 rough{{{1, 1e-6, 0}, {0, 1, 0}, {0, 0, 1}}};              // грубее допуска
-  CHECK(!scene::RotationProblem(rough).empty());
+  const g4scene::Mat3 rough{{{1, 1e-6, 0}, {0, 1, 0}, {0, 0, 1}}};              // грубее допуска
+  CHECK(!g4scene::RotationProblem(rough).empty());
 
-  const scene::Mat3 nan{{{NAN, 0, 0}, {0, 1, 0}, {0, 0, 1}}};
-  CHECK(!scene::RotationProblem(nan).empty());
+  const g4scene::Mat3 nan{{{NAN, 0, 0}, {0, 1, 0}, {0, 0, 1}}};
+  CHECK(!g4scene::RotationProblem(nan).empty());
 }
 
 // --- размещение -----------------------------------------------------------------
@@ -115,9 +133,9 @@ void TestRotationProblem() {
 // Родитель повёрнут на 90° вокруг z, ребёнок сдвинут внутри него на (30, 0, 0).
 // Правильно: ребёнок в мире в (0, 30, 0). Если поворот понят как обратный — в (0, -30, 0).
 void TestPlaceUsesActiveRotation() {
-  scene::Registry reg;
-  reg.AddMaterial("air", scene::Nist("G4_AIR"));
-  reg.AddMaterial("iron", scene::Nist("G4_Fe"));
+  g4scene::Registry reg;
+  reg.AddMaterial("air", g4scene::Nist("G4_AIR"));
+  reg.AddMaterial("iron", g4scene::Nist("G4_Fe"));
 
   auto* worldLV = new G4LogicalVolume(new G4Box("t_world", 200 * mm, 200 * mm, 200 * mm),
                                       reg.GetMaterial("air"), "t_world");
@@ -125,13 +143,13 @@ void TestPlaceUsesActiveRotation() {
 
   auto* parentLV = new G4LogicalVolume(new G4Box("t_parent", 50 * mm, 50 * mm, 10 * mm),
                                        reg.GetMaterial("air"), "t_parent");
-  auto* parentPV = scene::Place(parentLV, worldLV, "t_parent",
-                                scene::Transform(kRz90, G4ThreeVector()));
+  auto* parentPV = g4scene::Place(parentLV, worldLV, "t_parent",
+                                  g4scene::Transform(kRz90, G4ThreeVector()));
 
   auto* childLV = new G4LogicalVolume(new G4Box("t_child", 5 * mm, 5 * mm, 5 * mm),
                                       reg.GetMaterial("iron"), "t_child");
-  scene::Place(childLV, parentLV, "t_child",
-               scene::Transform(scene::kIdentity, G4ThreeVector(30 * mm, 0, 0)));
+  g4scene::Place(childLV, parentLV, "t_child",
+                 g4scene::Transform(g4scene::kIdentity, G4ThreeVector(30 * mm, 0, 0)));
 
   // Geant4 хранит у размещения тот же поворот, что мы дали
   const G4RotationMatrix stored = parentPV->GetObjectRotationValue();
@@ -158,10 +176,10 @@ void TestPlaceUsesActiveRotation() {
 // --- реестр и материалы ---------------------------------------------------------
 
 void TestRegistryAndNist() {
-  scene::Registry reg;
-  G4Material* fe = scene::Nist("G4_Fe");
+  g4scene::Registry reg;
+  G4Material* fe = g4scene::Nist("G4_Fe");
   CHECK(fe != nullptr && fe->GetName() == "G4_Fe");
-  CHECK(scene::Nist("G4_Fe") == fe);                       // второй раз — тот же объект
+  CHECK(g4scene::Nist("G4_Fe") == fe);                       // второй раз — тот же объект
 
   reg.AddMaterial("iron", fe);
   CHECK(reg.GetMaterial("iron") == fe);
@@ -180,6 +198,7 @@ int main() {
   TestRz90TurnsXIntoY();
   TestRotateThenShift();
   TestElementsAreKeptAsIs();
+  TestRowsKeepsRowOrder();
   TestRotationProblem();
   TestPlaceUsesActiveRotation();
   TestRegistryAndNist();

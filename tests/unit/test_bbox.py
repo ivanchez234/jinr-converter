@@ -19,7 +19,7 @@ def shape(d):
            "units": {"length": "mm", "angle": "deg", "density": "g/cm3"},
            "world": {"material": "iron"}, "materials": [{"id": "iron", "nist": "G4_Fe"}],
            "bodies": [body]}
-    return Scene.model_validate(doc).bodies[0].shape
+    return Scene.from_dict(doc).bodies[0].shape
 
 
 @pytest.mark.parametrize("d, expected", [
@@ -89,7 +89,7 @@ SCENES = sorted((CONTRACT_V0_1 / "examples").glob("*.json")) + sorted(TEST_SCENE
 def _cases():
     for path in SCENES:
         with open(path, encoding="utf-8") as f:
-            scene = Scene.model_validate(json.load(f))
+            scene = Scene.from_dict(json.load(f))
         for b in scene.bodies:
             if b.verification.bbox is None or b.shape.type == "mesh":
                 continue

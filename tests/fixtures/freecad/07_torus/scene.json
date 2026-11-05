@@ -1,0 +1,94 @@
+{
+  "format": "jinr-mc-scene",
+  "format_version": "0.1",
+  "min_reader_version": "0.1",
+  "source": {
+    "tool": "freecad-reference-samples",
+    "tool_version": "0.1.0",
+    "document": "06_torus.FCStd"
+  },
+  "units": {
+    "length": "mm",
+    "angle": "deg",
+    "density": "g/cm3"
+  },
+  "world": {
+    "material": "air",
+    "margin_percent": 10
+  },
+  "materials": [
+    {
+      "id": "air",
+      "name": "Воздух",
+      "nist": "G4_AIR"
+    },
+    {
+      "id": "iron",
+      "name": "iron",
+      "nist": "G4_Fe"
+    }
+  ],
+  "bodies": [
+    {
+      "id": "Torus",
+      "name": "Тор R100 r20 — X35°, Z15°",
+      "parent": null,
+      "material": "iron",
+      "transform": {
+        "translation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation": {
+          "convention": "matrix_active",
+          "matrix": [
+            [
+              0.9659258262890683,
+              -0.21201214989665465,
+              0.14845250554968453
+            ],
+            [
+              0.2588190451025208,
+              0.7912401152362238,
+              -0.5540322932223236
+            ],
+            [
+              0.0,
+              0.5735764363510463,
+              0.8191520442889917
+            ]
+          ]
+        }
+      },
+      "shape": {
+        "type": "torus",
+        "major_radius": 100.0,
+        "minor_radius": 20.0
+      },
+      "verification": {
+        "cad_volume": 789568.3520871487,
+        "cad_area": 78956.83520871487,
+        "bbox": [
+          [
+            -118.89195394843104,
+            -103.24951770021276,
+            -77.35764373510463
+          ],
+          [
+            118.89195394843102,
+            103.24951770021278,
+            77.35764373510463
+          ]
+        ]
+      },
+      "extras": {
+        "freecad": {
+          "name": "Torus",
+          "label": "Тор R100 r20 — X35°, Z15°",
+          "type_id": "Part::Torus"
+        }
+      }
+    }
+  ]
+}

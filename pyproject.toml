@@ -7,10 +7,12 @@ name = "mcscene"
 version = "0.1.0"
 description = "Генератор моделей Монте-Карло (Geant4, ...) из сцены jinr-mc-scene"
 requires-python = ">=3.11"
-dependencies = ["pydantic>=2.6", "jsonschema>=4.18", "jinja2>=3.1,<4"]
+# во время работы — только Jinja2 (чистый Python): mcscene можно положить папкой в аддон FreeCAD
+dependencies = ["jinja2>=3.1,<4"]
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+# jsonschema — только для тестов: перепроверка validate.py (tests/contract/test_schema_crosscheck.py)
+dev = ["pytest>=8", "jsonschema>=4.18"]
 
 [project.scripts]
 mcscene = "mcscene.cli:main"

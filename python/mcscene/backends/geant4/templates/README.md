@@ -34,12 +34,13 @@
 
 | Имя | Что это |
 |---|---|
-| `plan` | весь план генерации (`plan.py`, `G4Plan`): имя сцены, входной файл, sha256, версия |
+| `plan` | весь план генерации (`plan.py`, `G4Plan`): имя сцены, `namespace` — пространство имён C++ для классов сцены, входной файл, sha256, версия |
 | `world` | мир: материал, полуразмеры, где лежат тела, запас |
 | `materials` | материалы: `id`, `nist`, `comment` |
-| `bodies` | тела в порядке «родитель раньше ребёнка»: `func`, `volume`, `title`, `solid`, `material_id`, `mother`, `matrix`, `rotated`, `translation`, `probes` … |
+| `bodies` | тела в порядке «родитель раньше ребёнка»: `func`, `volume`, `title`, `solid`, `material_id`, `mother`, `matrix`, `rotated`, `rotation_note`, `axes_note`, `translation`, `probes` … |
 | `solid_kinds` | какие виды фигур есть в сцене (для `#include`) |
 | `colours` | цвета для `vis.mac`, уже посчитанные |
+| `example_detector` | объём для примера детектора в `user/DetectorConstruction.hh`: `volume`, `name`, `title` |
 
 ## Правила
 

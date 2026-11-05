@@ -34,7 +34,7 @@ inline const std::vector<Volume> kVolumes = {
 
 inline const std::vector<Probe> kProbes = {
 {% for b in bodies if b.probes %}
-    // {{ b.volume }}: центр и точки у углов
+    // {{ b.volume }}: точки заведомо внутри тела
 {% for p in b.probes %}
     { {{- p.point|map("num")|join(", ") }}, {{ p.volume|cpp_str }}, {{ p.material|cpp_str }}},
 {% endfor %}

@@ -17,6 +17,8 @@
 #include "g4scene/Materials.hh"
 #include "g4scene/Transform.hh"
 
+namespace {{ plan.namespace }} {
+
 G4VPhysicalVolume* GeneratedDetectorConstruction::Construct() {
   BuildMaterials();
   ConfigureMaterials();                   // хук для user/
@@ -31,7 +33,7 @@ G4VPhysicalVolume* GeneratedDetectorConstruction::Construct() {
 void GeneratedDetectorConstruction::BuildMaterials() {
 {% filter align_comments %}
 {% for m in materials %}
-  fReg.AddMaterial({{ m.id|cpp_str }}, scene::Nist({{ m.nist|cpp_str }}));  // {{ m.comment }}
+  fReg.AddMaterial({{ m.id|cpp_str }}, g4scene::Nist({{ m.nist|cpp_str }}));  // {{ m.comment }}
 {% endfor %}
 {% endfilter %}
 }
@@ -53,11 +55,14 @@ void GeneratedDetectorConstruction::{{ b.func }}() {
   fReg.AddVolume({{ b.volume|cpp_str }}, lv);
 {% if b.rotated %}
   // поворот «тело -> родитель», {{ b.rotation_note }}
-  {# indent=30: строки матрицы встают под первую, после «  const scene::Mat3 rotation{{» #}
-  const scene::Mat3 rotation{{ b.matrix|mat3_init(indent=30) }};
+  // оси тела в системе родителя (столбцы матрицы): {{ b.axes_note }}
+  {# indent=47: строки матрицы встают под первую, после «  const g4scene::Mat3 rotation = g4scene::Rows(» #}
+  const g4scene::Mat3 rotation = g4scene::Rows({{ b.matrix|mat3_rows(indent=47) }});
 {% endif %}
   // центр тела в системе родителя «{{ b.mother }}»
-  scene::Place(lv, LV({{ b.mother|cpp_str }}), {{ b.volume|cpp_str }},
-               scene::Transform({{ "rotation" if b.rotated else "scene::kIdentity" }}, {{ b.translation|vec_mm }}));
+  g4scene::Place(lv, LV({{ b.mother|cpp_str }}), {{ b.volume|cpp_str }},
+                 g4scene::Transform({{ "rotation" if b.rotated else "g4scene::kIdentity" }}, {{ b.translation|vec_mm }}));
 }
 {% endfor %}
+
+}  // namespace {{ plan.namespace }}

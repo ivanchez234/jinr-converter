@@ -8,7 +8,7 @@
 #include "G4LogicalVolume.hh"
 #include "G4PVPlacement.hh"
 
-namespace scene {
+namespace g4scene {
 
 namespace {
 
@@ -48,7 +48,7 @@ void CheckRotation(const Mat3& m, const G4String& where) {
   if (problem.empty()) return;
   G4ExceptionDescription ed;
   ed << "Неправильный поворот" << (where.empty() ? "" : " у ") << where << ": " << problem;
-  G4Exception("scene::CheckRotation", "g4scene001", FatalException, ed);
+  G4Exception("g4scene::CheckRotation", "g4scene001", FatalException, ed);
 }
 
 G4RotationMatrix ToRotation(const Mat3& m) {
@@ -73,4 +73,4 @@ G4VPhysicalVolume* Place(G4LogicalVolume* lv, G4LogicalVolume* mother,
   return new G4PVPlacement(t, lv, name, mother, false, 0, checkOverlaps);
 }
 
-}  // namespace scene
+}  // namespace g4scene

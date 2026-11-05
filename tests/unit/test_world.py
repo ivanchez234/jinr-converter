@@ -17,7 +17,7 @@ def run(p, scene):
 
 def load(path):
     with open(path, encoding="utf-8") as f:
-        return Scene.model_validate(json.load(f))
+        return Scene.from_dict(json.load(f))
 
 
 CUBE_BBOX = ((-25, -25, 0), (25, 25, 50))
@@ -82,7 +82,7 @@ def test_mesh_without_bbox_is_an_error_but_others_count():
     for b in doc["bodies"]:
         if b["shape"]["type"] == "mesh":
             del b["verification"]["bbox"]
-    w, diags = run(WorldPass(), Scene.model_validate(doc))
+    w, diags = run(WorldPass(), Scene.from_dict(doc))
     assert [d.code for d in diags] == ["E330"]
     assert diags[0].body_id == "magnet_yoke"
     assert w.half_size == (2200.0, 1650.0, 1100.0)          # без ярма
